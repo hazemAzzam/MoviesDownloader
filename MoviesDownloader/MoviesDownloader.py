@@ -59,7 +59,7 @@ def Download(url, path): # last stage: downloading
             for chunk in req.iter_content(chunk_size=250):
                 file.write(chunk)
     except:
-        print("error in Download")
+        print("URL not found")
     #print("\n")
     #obj = SmartDL(url, path)
     #obj.start()
@@ -197,11 +197,11 @@ def Search(quality):
     showResult = searchResult[selectedShow]
     showPoster = searchResult[selectedShow].posterURL
 
-    if (type(showResult) == Show):
+    if (showResult.type == "series"):
         if (not getSeasons(showResult, quality, showTitle, forceDownload, seriesType)):
             return 
     else:
-        Thread(target=StartThreading, args=(showResult, quality, False, "", 0, forceDownload)).start()
+        Thread(target=StartThreading, args=(showResult, quality, False, "", 0, forceDownload, showPoster)).start()
         #StartThreading(showResult, quality, False, "", 0, forceDownload)
 
 def getSeasons(show, quality, seriesName, forceDownload, seriesType):
