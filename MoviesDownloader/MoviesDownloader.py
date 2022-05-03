@@ -6,7 +6,17 @@ import requests
 import time
 import os
 
-movieDirectory = "D:\\Movies"
+os.system("chcp 1256")
+
+movieTextFile = 'MoviesFolderPath.txt'
+if os.path.exists(movieTextFile) == False or os.stat(movieTextFile).st_size == 0:
+    movieDirectory=input("Movies Director: ")
+    with open(movieTextFile, 'w') as fd: 
+        fd.write(movieDirectory)
+else:
+    with open('MoviesFolderPath.txt', 'r') as fd: 
+        movieDirectory = fd.read()
+
 threads = [] # start 
 ready = [] # start -> ready
 running = [] # ready -> running
@@ -233,8 +243,6 @@ def getSeasons(show, quality, seriesName, forceDownload, seriesType):
 
 
         
-        
-os.system("chcp 1256")
 try:
     quality = int(input("[?] Quality: "))
     if quality < 280:
