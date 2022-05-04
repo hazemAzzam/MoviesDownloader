@@ -10,7 +10,7 @@ os.system("chcp 1256")
 
 movieTextFile = 'MoviesFolderPath.txt'
 if os.path.exists(movieTextFile) == False or os.stat(movieTextFile).st_size == 0:
-    movieDirectory=input("Movies Director: ")
+    movieDirectory=input("Movies Director: ").replace('\\','\\\\')
     with open(movieTextFile, 'w') as fd: 
         fd.write(movieDirectory)
 else:
@@ -63,6 +63,7 @@ IconResource=icon.ico,0"""
 
 
 def Download(url, path): # last stage: downloading
+    
     try:
         req = requests.get(url, stream=True, allow_redirects=True)
         with open(path, 'wb') as file:
@@ -88,7 +89,7 @@ def checkIfFileExist(path, forceDownload=False): # check if movie al ready downl
     return True
 
 def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
-    #print(f"{episode.title}")
+    print(f"{episode.title}")
     while(True):
         links = episode.getDownloadSources()
         length = len(links)
@@ -108,6 +109,7 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
     
 
 def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDownload, posterURL):
+    print(episode.title)
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
     fileName = fileInfo.fileName
@@ -207,7 +209,7 @@ def Search(quality):
     showResult = searchResult[selectedShow]
     showPoster = searchResult[selectedShow].posterURL
 
-    if (showResult.type == "series"):
+    if (showResult.type != "movies"):
         if (not getSeasons(showResult, quality, showTitle, forceDownload, seriesType)):
             return 
     else:
