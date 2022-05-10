@@ -21,7 +21,7 @@ threads = [] # start
 ready = [] # start -> ready
 running = [] # ready -> running
 MAX_THREADS = 2
-
+s = requests.session()
 def make_square(im, min_size=300, fill_color=(0, 0, 0, 0)):
     x, y = im.size  
     size = max(min_size, x, y)
@@ -64,16 +64,16 @@ IconResource=icon.ico,0"""
 
 def Download(url, path): # last stage: downloading
     
-    try:
-        req = requests.get(url, stream=True, allow_redirects=True)
-        with open(path, 'wb') as file:
-            for chunk in req.iter_content(chunk_size=250):
-                file.write(chunk)
-    except:
-        print("URL not found")
-    #print("\n")
-    #obj = SmartDL(url, path)
-    #obj.start()
+    #try:
+    #    req = requests.get(url, stream=True, allow_redirects=True)
+    #    with open(path, 'wb') as file:
+    #        for chunk in req.iter_content(chunk_size=512 * 1024):
+    #            file.write(chunk)
+    #except:
+    #    print("URL not found")
+    print("\n")
+    obj = SmartDL(url, path)
+    obj.start()
 
 def CreateFolder(folderLocation): # Create Folder in a given path 
     exist = os.path.exists(folderLocation)
@@ -89,7 +89,7 @@ def checkIfFileExist(path, forceDownload=False): # check if movie al ready downl
     return True
 
 def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
-    print(f"{episode.title}")
+    #print(f"{episode.title}")
     while(True):
         links = episode.getDownloadSources()
         length = len(links)
@@ -110,6 +110,7 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
 
 def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDownload, posterURL):
     print(episode.title)
+    
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
     fileName = fileInfo.fileName
@@ -137,7 +138,7 @@ def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesNa
     for episodeNumber in range(start, end):
         #episodeNumber = search(episodes, i)
         episode = episodes[episodeNumber]
-        episode.refreshMetadata() # refresh poster link
+        episode.refreshMetadata(posterOnly = True) # refresh poster link
         posterURL = episode.posterURL
         
         StartThreading(episode, quality, True, seriesName, seasonNumber, forceDownload, posterURL)
@@ -208,13 +209,13 @@ def Search(quality):
     showTitle = searchResult[selectedShow].title.replace(":", "") 
     showResult = searchResult[selectedShow]
     showPoster = searchResult[selectedShow].posterURL
-
-    if (showResult.type != "movies"):
+    #print(showResult.type)
+    if (showResult.type != "movie"):
         if (not getSeasons(showResult, quality, showTitle, forceDownload, seriesType)):
             return 
     else:
-        Thread(target=StartThreading, args=(showResult, quality, False, "", 0, forceDownload, showPoster)).start()
-        #StartThreading(showResult, quality, False, "", 0, forceDownload)
+        #Thread(target=StartThreading, args=(showResult, quality, False, "", 0, forceDownload, showPoster)).start()
+        StartThreading(showResult, quality, False, "", 0, forceDownload, showPoster)
 
 def getSeasons(show, quality, seriesName, forceDownload, seriesType):
     seasons = show.getSeasons()
@@ -227,8 +228,8 @@ def getSeasons(show, quality, seriesName, forceDownload, seriesType):
     except:
         return False
     if (sIsRanged):
-        Thread(target=StartSeasonsThreading, args=(seasons, sStart, sEnd, quality, seriesName, forceDownload, seriesType)).start()
-        #StartSeasonsThreading(seasons, sStart, sEnd, quality, seriesName, forceDownload, seriesType)
+        #Thread(target=StartSeasonsThreading, args=(seasons, sStart, sEnd, quality, seriesName, forceDownload, seriesType)).start()
+        StartSeasonsThreading(seasons, sStart, sEnd, quality, seriesName, forceDownload, seriesType)
     else:
         episodes = seasons[sStart].getEpisodes()
         numberOfEpisodes = len(episodes)
@@ -240,8 +241,8 @@ def getSeasons(show, quality, seriesName, forceDownload, seriesType):
         except:
             return False
         
-        Thread(target=StartEpisodesThreading, args=(episodes, sStart, eStart, eEnd, quality, seriesName, forceDownload, seriesType)).start()
-        #StartEpisodesThreading(episodes, sStart, eStart, eEnd, quality, seriesName, forceDownload, seriesType)
+        #Thread(target=StartEpisodesThreading, args=(episodes, sStart, eStart, eEnd, quality, seriesName, forceDownload, seriesType)).start()
+        StartEpisodesThreading(episodes, sStart, eStart, eEnd, quality, seriesName, forceDownload, seriesType)
 
 
         
@@ -253,8 +254,4 @@ except:
     quality = 280
 
 while(True):
-    try:
-        Search(quality)
-    except:
-        print("Error")
-        Search(quality)
+    Search(quality)
