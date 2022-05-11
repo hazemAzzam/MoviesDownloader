@@ -2,6 +2,7 @@ from pySmartDL import SmartDL
 from threading import Thread
 from PIL       import Image
 from egybest   import *
+import progressbar
 import requests
 import time
 import os
@@ -60,18 +61,44 @@ IconResource=icon.ico,0"""
     os.system(f"attrib +s +h \"{iniFile}\"") #hide file
     
     
-   
+def progress(percent=0, width=40, total=100):
+    left = width * percent // total
+    right = width - left
+    
+    tags = "#" * left
+    spaces = " " * right
+    percents = f"{percent:.0f}%"
+    
+    print("\r[", tags, spaces, "]", percents, sep="", end="", flush=True)
 
 
 def Download(url, path): # last stage: downloading
     print("Downloading...")
     try:
         req = requests.get(url, stream=True, allow_redirects=True)
+        res = requests.head(url)
+        fileSize=1
+        isContentLength = True
+        try:
+            fileSize = int(res.headers['content-length'])
+            print(f"File Size: {fileSize}")
+        except:
+            isContentLength = False
+  
+        progress=0
         with open(path, 'wb') as file:
             for chunk in req.iter_content(chunk_size=230):
                 file.write(chunk)
+                if isContentLength:
+                    progress = progress + 230
+                    percent = (progress / fileSize) * 100
+                    print(f"\r{progress} / {fileSize}   {percent}%", sep="", end="", flush=True)
+
     except:
         print("URL not found")
+    
+    print("----")
+    
     #print("\n")
     #obj = SmartDL(url, path)
     #obj.start()
