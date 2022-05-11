@@ -64,16 +64,16 @@ IconResource=icon.ico,0"""
 
 def Download(url, path): # last stage: downloading
     
-    #try:
-    #    req = requests.get(url, stream=True, allow_redirects=True)
-    #    with open(path, 'wb') as file:
-    #        for chunk in req.iter_content(chunk_size=512 * 1024):
-    #            file.write(chunk)
-    #except:
-    #    print("URL not found")
-    print("\n")
-    obj = SmartDL(url, path)
-    obj.start()
+    try:
+        req = requests.get(url, stream=True, allow_redirects=True)
+        with open(path, 'wb') as file:
+            for chunk in req.iter_content(chunk_size=512 * 1024):
+                file.write(chunk)
+    except:
+        print("URL not found")
+    #print("\n")
+    #obj = SmartDL(url, path)
+    #obj.start()
 
 def CreateFolder(folderLocation): # Create Folder in a given path 
     exist = os.path.exists(folderLocation)
