@@ -61,17 +61,6 @@ IconResource=icon.ico,0"""
     os.system(f"attrib +s +h \"{iniFile}\"") #hide file
     
     
-def progress(percent=0, width=40, total=100):
-    left = width * percent // total
-    right = width - left
-    
-    tags = "#" * left
-    spaces = " " * right
-    percents = f"{percent:.0f}%"
-    
-    print("\r[", tags, spaces, "]", percents, sep="", end="", flush=True)
-
-
 def Download(url, path): # last stage: downloading
     print("Downloading...")
     try:
@@ -81,21 +70,23 @@ def Download(url, path): # last stage: downloading
         isContentLength = True
         try:
             fileSize = int(res.headers['content-length'])
-            print(f"File Size: {fileSize}")
+            print(f"File Size: {fileSize}  ({round(fileSize*10**-9,2)}GB)")
         except:
             isContentLength = False
   
         progress=0
+        chunkSize = 1000
+
         with open(path, 'wb') as file:
-            for chunk in req.iter_content(chunk_size=230):
+            for chunk in req.iter_content(chunk_size=chunkSize):
                 file.write(chunk)
                 if isContentLength:
-                    progress = progress + 230
+                    progress = progress + chunkSize
                     percent = (progress / fileSize) * 100
-                    print(f"\r{progress} / {fileSize}   {percent}%", sep="", end="", flush=True)
+                    print(f"\r{progress} / {fileSize}  {round(percent, 2)}% ", sep="", end="", flush=True)
 
     except:
-        print("URL not found")
+        print("Error (404)")
     
     print("----")
     
@@ -124,9 +115,9 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
         length = len(links)
         if (length > 0):
             break
-        print(" waiting links...")
+        print("\rWaiting links...")
         time.sleep(1)
-    print("Links Found...")
+    print("File info collected...")
     links.reverse()
 
     numberOfLinks = len(links)
@@ -142,7 +133,9 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
     
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
+    filePath = ""
     fileName = fileInfo.fileName
+    fileSize = int(requests.head(link).headers['content-length'])
     if (isSeries): # if series make sure the directory is exists
         print("Checking Directories...")
         seriesDirectory = movieDirectory + "\\" + seriesName
@@ -155,12 +148,17 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
             Download(posterURL, seriesDirectory+"\\icon.jpg")
             assign_icon(seriesDirectory)
 
-        if (not checkIfFileExist(filePath, forceDownload)): # download if movie not downloaded
-            Download(link, filePath)
+        
     else: # if not series
         filePath = movieDirectory + "\\" + fileName
-        print(f"{filePath}")
-        Download(link, filePath)
+
+    print(f"{filePath}")
+    if (checkIfFileExist(filePath, forceDownload)): # download if movie not downloaded
+        existFileSize = os.path.getsize(filePath)
+        if (fileSize <= existFileSize):
+            print("Episode Downloaded Before ^^\n-----")
+            return
+    Download(link, filePath)
 
 def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesName, forceDownload, seriesType): # Download Season
     #episodes.sort(key=attrgetter('title'))
