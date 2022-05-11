@@ -11,7 +11,6 @@ Searching for movie
 ![image](https://user-images.githubusercontent.com/61450444/167854893-ca130aa8-cfd4-4bc8-ac3c-a84e4c277ff4.png)
 if you select series
 then will ask you for seasons and episodes
-![image](https://user-images.githubusercontent.com/61450444/167854940-a1857023-8446-4b15-82ee-a6200d37258c.png)
 ![image](https://user-images.githubusercontent.com/61450444/167855198-0a6379a4-88d0-4cb9-9d09-ceb7fbd4d2ee.png)
 from episode 1 to episode 6 will be downloaded skipping episode if already downloaded
 ![image](https://user-images.githubusercontent.com/61450444/167856103-fb7e5a2f-eafe-4cb0-931e-d0bd5f8a92ae.png)
