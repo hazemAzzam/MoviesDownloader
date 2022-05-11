@@ -14,6 +14,8 @@ then will ask you for seasons and episodes
 ![image](https://user-images.githubusercontent.com/61450444/167854940-a1857023-8446-4b15-82ee-a6200d37258c.png)
 ![image](https://user-images.githubusercontent.com/61450444/167855198-0a6379a4-88d0-4cb9-9d09-ceb7fbd4d2ee.png)
 from episode 1 to episode 6 will be downloaded skipping episode if already downloaded
+![image](https://user-images.githubusercontent.com/61450444/167856103-fb7e5a2f-eafe-4cb0-931e-d0bd5f8a92ae.png)
+
 
 if you select movie will download it to the movie directory
 ![image](https://user-images.githubusercontent.com/61450444/167855816-9f718c79-6eb3-4668-9255-551087db0f5d.png)
