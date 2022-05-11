@@ -131,8 +131,8 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
         if (not checkIfFileExist(filePath, forceDownload)): # download if movie not downloaded
             Download(link, filePath)
     else: # if not series
-        print(f"{filePath}")
         filePath = movieDirectory + "\\" + fileName
+        print(f"{filePath}")
         Download(link, filePath)
 
 def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesName, forceDownload, seriesType): # Download Season
