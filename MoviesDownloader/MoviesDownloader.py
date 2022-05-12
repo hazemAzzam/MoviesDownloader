@@ -244,7 +244,7 @@ def Search(quality):
     else:
         #print("Episode..")
         #Thread(target=StartThreading, args=(showResult, quality, False, "", 0, forceDownload, showPoster)).start()
-        StartThreading(showResult, quality, False, "", 0, forceDownload, showPoster)
+        StartThreading(showResult, quality, False, "", 0, forceDownload)
     input("Press <Enter> to continue.")
 
 def getSeasons(show, quality, seriesName, forceDownload, seriesType):
