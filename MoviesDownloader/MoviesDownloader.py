@@ -62,11 +62,11 @@ IconResource=icon.ico,0"""
     
     
 def Download(url, path): # last stage: downloading
-    print("Downloading...")
     try:
         req = requests.get(url, stream=True, allow_redirects=True)
         res = requests.head(url)
         fileSize=1
+        mb = 9.5*10**-7
         isContentLength = True
         try:
             fileSize = int(res.headers['content-length'])
@@ -75,20 +75,19 @@ def Download(url, path): # last stage: downloading
             isContentLength = False
   
         progress=0
-        chunkSize = 1000
+        chunkSize = 10000
 
         with open(path, 'wb') as file:
             for chunk in req.iter_content(chunk_size=chunkSize):
                 file.write(chunk)
                 if isContentLength:
-                    progress = progress + chunkSize
+                    progress = (progress + chunkSize)
                     percent = (progress / fileSize) * 100
                     print(f"\r{progress} / {fileSize}  {round(percent, 2)}% ", sep="", end="", flush=True)
 
     except:
         print("Error (404)")
-    
-    print("----")
+   
     
     #print("\n")
     #obj = SmartDL(url, path)
@@ -128,9 +127,7 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
     
     
 
-def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDownload, posterURL):
-    print(episode.title)
-    
+def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDownload, posterURL):    
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
     filePath = ""
@@ -145,20 +142,24 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
         CreateFolder(seasonsDirectory)
 
         if (not checkIfFileExist(seriesDirectory + "\\icon.ico", forceDownload) and not checkIfFileExist(seriesDirectory + "\\desktop.ini", forceDownload)): # download poster if not downloaded
+            print("Downloading Icon...")
             Download(posterURL, seriesDirectory+"\\icon.jpg")
             assign_icon(seriesDirectory)
+            print("----")
 
         
     else: # if not series
         filePath = movieDirectory + "\\" + fileName
 
-    print(f"{filePath}")
     if (checkIfFileExist(filePath, forceDownload)): # download if movie not downloaded
         existFileSize = os.path.getsize(filePath)
         if (fileSize <= existFileSize):
             print("Episode Downloaded Before ^^\n-----")
             return
+    print(f"Title: {episode.title}")
+    print(f"Path: {filePath}")
     Download(link, filePath)
+    print("-----")
 
 def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesName, forceDownload, seriesType): # Download Season
     #episodes.sort(key=attrgetter('title'))
@@ -238,15 +239,16 @@ def Search(quality):
     showTitle = searchResult[selectedShow].title.replace(":", "") 
     showResult = searchResult[selectedShow]
     showPoster = searchResult[selectedShow].posterURL
-    #print(showResult.type)
+    
     if (showResult.type != "movie"):
-        print("Series..")
-        if (not getSeasons(showResult, quality, showTitle, forceDownload, seriesType)):
-            return 
+        #print("Series..")
+        if (getSeasons(showResult, quality, showTitle, forceDownload, seriesType)):
+            print("Type error.")
     else:
-        print("Episode..")
+        #print("Episode..")
         #Thread(target=StartThreading, args=(showResult, quality, False, "", 0, forceDownload, showPoster)).start()
         StartThreading(showResult, quality, False, "", 0, forceDownload, showPoster)
+    input("Press <Enter> to continue.")
 
 def getSeasons(show, quality, seriesName, forceDownload, seriesType):
     seasons = show.getSeasons()
