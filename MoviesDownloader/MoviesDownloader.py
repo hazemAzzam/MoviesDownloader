@@ -85,7 +85,10 @@ def Download(url, path): # last stage: downloading
 def CreateFolder(folderLocation): # Create Folder in a given path 
     exist = os.path.exists(folderLocation)
     if not exist:
+        print("Creating Folder...")
         os.mkdir(folderLocation)
+        return False
+    return True
 
 def checkIfFileExist(path, forceDownload=False): # check if movie al ready downloaded before
     if (forceDownload): # download even the file exist
@@ -96,8 +99,8 @@ def checkIfFileExist(path, forceDownload=False): # check if movie al ready downl
     return True
 
 def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
+    print(f"Title: {episode.title}")
     print("Getting file info...")
-    #print(f"{episode.title}")
     while(True):
         links = episode.getDownloadSources()
         length = len(links)
@@ -116,25 +119,17 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
     
     
 
-def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDownload, posterURL):    
+def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDownload):    
+    filePath = ""
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
-    filePath = ""
     fileName = fileInfo.fileName
     fileSize = int(requests.head(link).headers['content-length'])
-    if (isSeries): # if series make sure the directory is exists
-        print("Checking Directories...")
-        seriesDirectory = movieDirectory + "\\" + seriesName
-        seasonsDirectory = seriesDirectory + f"\\Season {seasonNumber + 1}"
-        filePath = seasonsDirectory + "\\" + fileName
-        CreateFolder(seriesDirectory)
-        CreateFolder(seasonsDirectory)
 
-        if (not checkIfFileExist(seriesDirectory + "\\icon.ico", forceDownload) and not checkIfFileExist(seriesDirectory + "\\desktop.ini", forceDownload)): # download poster if not downloaded
-            print("Downloading Icon...")
-            Download(posterURL, seriesDirectory+"\\icon.jpg")
-            assign_icon(seriesDirectory)
-            print("----")
+    if (isSeries): # if series make sure the directory is exists
+        seriesDirectory = movieDirectory + "\\" + seriesName
+        seasonsDirectory = seriesDirectory + f"\\Season {seasonNumber + 1}"        
+        filePath = seasonsDirectory + "\\" + fileName
 
         
     else: # if not series
@@ -145,12 +140,14 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
         if (fileSize <= existFileSize):
             print("Episode Downloaded Before ^^\n-----")
             return
-    print(f"Title: {episode.title}")
     print(f"Path: {filePath}")
     Download(link, filePath)
     print("-----")
 
 def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesName, forceDownload, seriesType): # Download Season
+    episodes[start].refreshMetadata(True)
+    posterURL = episodes[start].posterURL
+    checkDirectories(seasonNumber, seriesName, posterURL, forceDownload)
     #episodes.sort(key=attrgetter('title'))
     if (seriesType=='anime'):
         episodes.reverse()
@@ -160,17 +157,29 @@ def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesNa
         #episodeNumber = search(episodes, i)
         episode = episodes[episodeNumber]
         episode.refreshMetadata(posterOnly = True) # refresh poster link
-        posterURL = episode.posterURL
         
-        StartThreading(episode, quality, True, seriesName, seasonNumber, forceDownload, posterURL)
+        StartThreading(episode, quality, True, seriesName, seasonNumber, forceDownload)
 
 def printa(lista):
     for a in lista:
         print(a.title)
 
+def checkDirectories(seasonNumber, seriesName, posterURL, forceDownload):
+    print("Checking Directories...")
+    seriesDirectory = movieDirectory + "\\" + seriesName
+    seasonsDirectory = seriesDirectory + f"\\Season {seasonNumber + 1}"
+    isSeriesDirectoryExist = CreateFolder(seriesDirectory)
+    CreateFolder(seasonsDirectory)
+    
+    if not isSeriesDirectoryExist or (not checkIfFileExist(seriesDirectory + "\\icon.ico", forceDownload) and not checkIfFileExist(seriesDirectory + "\\desktop.ini", forceDownload)): # download poster if not downloaded
+        print("Downloading Icon...")
+        Download(posterURL, seriesDirectory+"\\icon.jpg")
+        assign_icon(seriesDirectory)
+        print("----")
+
 def StartSeasonsThreading(seasons, start, end, quality, seriesName, forceDownload, seriesType):
     length = len(seasons)
-    for seasonNumber in range(start, end):
+    for seasonNumber in range(start, end):       
         episodes = seasons[seasonNumber].getEpisodes()
         numberOfEpisodes = len(episodes)
         StartEpisodesThreading(episodes, seasonNumber,0, numberOfEpisodes, quality, seriesName, forceDownload, seriesType)
