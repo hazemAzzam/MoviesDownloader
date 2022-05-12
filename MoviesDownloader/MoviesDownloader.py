@@ -124,7 +124,10 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
     fileName = fileInfo.fileName
-    fileSize = int(requests.head(link).headers['content-length'])
+    try:
+        fileSize = int(requests.head(link).headers['content-length'])
+    except:
+        fileSize = 1
 
     if (isSeries): # if series make sure the directory is exists
         seriesDirectory = movieDirectory + "\\" + seriesName
