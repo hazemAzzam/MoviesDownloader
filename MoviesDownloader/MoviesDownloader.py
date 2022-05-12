@@ -2,7 +2,6 @@ from pySmartDL import SmartDL
 from threading import Thread
 from PIL       import Image
 from egybest   import *
-import progressbar
 import requests
 import time
 import os
@@ -18,11 +17,6 @@ else:
     with open('MoviesFolderPath.txt', 'r') as fd: 
         movieDirectory = fd.read()
 
-threads = [] # start 
-ready = [] # start -> ready
-running = [] # ready -> running
-MAX_THREADS = 2
-s = requests.session()
 def make_square(im, min_size=300, fill_color=(0, 0, 0, 0)):
     x, y = im.size  
     size = max(min_size, x, y)
@@ -49,7 +43,6 @@ IconResource=icon.ico,0"""
     
     os.system(f"attrib -s \"{path}\"")
     os.system(f"attrib +s +h \"{iconFile}\"") #hide file
-    os.system(f"del \"{filename}\"") 
     os.system(f"attrib +s \"{path}\"")
     
     try:
@@ -58,15 +51,16 @@ IconResource=icon.ico,0"""
     except:
         print("error setting folder icon")
         pass
+    os.system(f"del \"{filename}\"")
     os.system(f"attrib +s +h \"{iniFile}\"") #hide file
     
     
 def Download(url, path): # last stage: downloading
-    print("Downloading...")
     try:
         req = requests.get(url, stream=True, allow_redirects=True)
         res = requests.head(url)
         fileSize=1
+        mb = 9.5*10**-7
         isContentLength = True
         try:
             fileSize = int(res.headers['content-length'])
@@ -75,24 +69,18 @@ def Download(url, path): # last stage: downloading
             isContentLength = False
   
         progress=0
-        chunkSize = 1000
+        chunkSize = 10000
 
         with open(path, 'wb') as file:
             for chunk in req.iter_content(chunk_size=chunkSize):
                 file.write(chunk)
                 if isContentLength:
-                    progress = progress + chunkSize
+                    progress = (progress + chunkSize)
                     percent = (progress / fileSize) * 100
                     print(f"\r{progress} / {fileSize}  {round(percent, 2)}% ", sep="", end="", flush=True)
 
     except:
         print("Error (404)")
-    
-    print("----")
-    
-    #print("\n")
-    #obj = SmartDL(url, path)
-    #obj.start()
 
 def CreateFolder(folderLocation): # Create Folder in a given path 
     exist = os.path.exists(folderLocation)
@@ -128,9 +116,7 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
     
     
 
-def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDownload, posterURL):
-    print(episode.title)
-    
+def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDownload, posterURL):    
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
     filePath = ""
@@ -145,23 +131,29 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
         CreateFolder(seasonsDirectory)
 
         if (not checkIfFileExist(seriesDirectory + "\\icon.ico", forceDownload) and not checkIfFileExist(seriesDirectory + "\\desktop.ini", forceDownload)): # download poster if not downloaded
+            print("Downloading Icon...")
             Download(posterURL, seriesDirectory+"\\icon.jpg")
             assign_icon(seriesDirectory)
+            print("----")
 
         
     else: # if not series
         filePath = movieDirectory + "\\" + fileName
 
-    print(f"{filePath}")
     if (checkIfFileExist(filePath, forceDownload)): # download if movie not downloaded
         existFileSize = os.path.getsize(filePath)
         if (fileSize <= existFileSize):
             print("Episode Downloaded Before ^^\n-----")
             return
+    print(f"Title: {episode.title}")
+    print(f"Path: {filePath}")
     Download(link, filePath)
+    print("-----")
 
 def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesName, forceDownload, seriesType): # Download Season
     #episodes.sort(key=attrgetter('title'))
+    if (seriesType=='anime'):
+        episodes.reverse()
 
     #printa(episodes)
     for episodeNumber in range(start, end):
@@ -171,12 +163,6 @@ def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesNa
         posterURL = episode.posterURL
         
         StartThreading(episode, quality, True, seriesName, seasonNumber, forceDownload, posterURL)
-
-def search(lista, episodeNumber):
-    for i in range(0, len(lista)):
-        number = int(lista[i].title.split('ep-')[1].split('-')[0])
-        if number == episodeNumber:
-            return number
 
 def printa(lista):
     for a in lista:
@@ -203,7 +189,7 @@ def getRange(range):
 def get_max_str(lst, fallback=''):
     return max(lst, key=len) if lst else fallback
 
-def printList(titles, types):
+def printSearchResult(titles, types):
     maxTitleLength = len(get_max_str(titles))
     maxTypeLength = len(get_max_str(types))
     for i in range(0, len(titles)):
@@ -225,7 +211,7 @@ def Search(quality):
     for i in range(0, length):
         titles.append(f"{i+1}. " + searchResult[i].title)
         types.append(searchResult[i].type + f" ({searchResult[i].rating})")
-    printList(titles, types)
+    printSearchResult(titles, types)
     
     try:
         selectedShow = int(input("[?] Open: ")) - 1
@@ -238,15 +224,16 @@ def Search(quality):
     showTitle = searchResult[selectedShow].title.replace(":", "") 
     showResult = searchResult[selectedShow]
     showPoster = searchResult[selectedShow].posterURL
-    #print(showResult.type)
+    
     if (showResult.type != "movie"):
-        print("Series..")
-        if (not getSeasons(showResult, quality, showTitle, forceDownload, seriesType)):
-            return 
+        #print("Series..")
+        if (getSeasons(showResult, quality, showTitle, forceDownload, seriesType)):
+            print("Type error.")
     else:
-        print("Episode..")
+        #print("Episode..")
         #Thread(target=StartThreading, args=(showResult, quality, False, "", 0, forceDownload, showPoster)).start()
         StartThreading(showResult, quality, False, "", 0, forceDownload, showPoster)
+    input("Press <Enter> to continue.")
 
 def getSeasons(show, quality, seriesName, forceDownload, seriesType):
     seasons = show.getSeasons()
