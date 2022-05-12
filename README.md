@@ -7,7 +7,9 @@
 + you can go back to search menu by typing 0
 + you can watch the episode while it being downloaded 
 
-Searching for movie
+Searching for movie, after typing the name of the movie
+will display a list to choose from
+this list containing movie title, type(movie, series, or anime) and the rating
 ![image](https://user-images.githubusercontent.com/61450444/167854893-ca130aa8-cfd4-4bc8-ac3c-a84e4c277ff4.png)
 if you select series
 then will ask you for seasons and episodes
