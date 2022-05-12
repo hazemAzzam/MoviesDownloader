@@ -163,6 +163,8 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
 
 def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesName, forceDownload, seriesType): # Download Season
     #episodes.sort(key=attrgetter('title'))
+    if (seriesType=='anime'):
+        episodes.reverse()
 
     #printa(episodes)
     for episodeNumber in range(start, end):
