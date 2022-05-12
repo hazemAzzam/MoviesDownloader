@@ -2,7 +2,6 @@ from pySmartDL import SmartDL
 from threading import Thread
 from PIL       import Image
 from egybest   import *
-import progressbar
 import requests
 import time
 import os
@@ -18,11 +17,6 @@ else:
     with open('MoviesFolderPath.txt', 'r') as fd: 
         movieDirectory = fd.read()
 
-threads = [] # start 
-ready = [] # start -> ready
-running = [] # ready -> running
-MAX_THREADS = 2
-s = requests.session()
 def make_square(im, min_size=300, fill_color=(0, 0, 0, 0)):
     x, y = im.size  
     size = max(min_size, x, y)
@@ -49,7 +43,6 @@ IconResource=icon.ico,0"""
     
     os.system(f"attrib -s \"{path}\"")
     os.system(f"attrib +s +h \"{iconFile}\"") #hide file
-    os.system(f"del \"{filename}\"") 
     os.system(f"attrib +s \"{path}\"")
     
     try:
@@ -58,6 +51,7 @@ IconResource=icon.ico,0"""
     except:
         print("error setting folder icon")
         pass
+    os.system(f"del \"{filename}\"")
     os.system(f"attrib +s +h \"{iniFile}\"") #hide file
     
     
@@ -87,11 +81,6 @@ def Download(url, path): # last stage: downloading
 
     except:
         print("Error (404)")
-   
-    
-    #print("\n")
-    #obj = SmartDL(url, path)
-    #obj.start()
 
 def CreateFolder(folderLocation): # Create Folder in a given path 
     exist = os.path.exists(folderLocation)
@@ -175,12 +164,6 @@ def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesNa
         
         StartThreading(episode, quality, True, seriesName, seasonNumber, forceDownload, posterURL)
 
-def search(lista, episodeNumber):
-    for i in range(0, len(lista)):
-        number = int(lista[i].title.split('ep-')[1].split('-')[0])
-        if number == episodeNumber:
-            return number
-
 def printa(lista):
     for a in lista:
         print(a.title)
@@ -206,7 +189,7 @@ def getRange(range):
 def get_max_str(lst, fallback=''):
     return max(lst, key=len) if lst else fallback
 
-def printList(titles, types):
+def printSearchResult(titles, types):
     maxTitleLength = len(get_max_str(titles))
     maxTypeLength = len(get_max_str(types))
     for i in range(0, len(titles)):
@@ -228,7 +211,7 @@ def Search(quality):
     for i in range(0, length):
         titles.append(f"{i+1}. " + searchResult[i].title)
         types.append(searchResult[i].type + f" ({searchResult[i].rating})")
-    printList(titles, types)
+    printSearchResult(titles, types)
     
     try:
         selectedShow = int(input("[?] Open: ")) - 1
