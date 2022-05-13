@@ -1,10 +1,23 @@
 from pySmartDL import SmartDL
 from threading import Thread
 from PIL       import Image
+from time import monotonic
 from egybest   import *
 import requests
 import time
+import sys
 import os
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 os.system("chcp 1256")
 
@@ -25,7 +38,7 @@ def make_square(im, min_size=300, fill_color=(0, 0, 0, 0)):
     return new_im
 
 def assign_icon(path):
-    print("Seting folder icon...")
+    print("Seting folder icon...", end="")
     text = """[ViewState]
 Mode=
 Vid=
@@ -48,45 +61,58 @@ IconResource=icon.ico,0"""
     try:
         with open(path+"\\desktop.ini", 'w') as file:
             file.write(text)
+        print(f"\r{bcolors.OKGREEN}Seting folder icon...{bcolors.ENDC}")
     except:
-        print("error setting folder icon")
+        print(f"\r{bcolors.FAIL}Seting folder icon...{bcolors.ENDC}")
         pass
     os.system(f"del \"{filename}\"")
     os.system(f"attrib +s +h \"{iniFile}\"") #hide file
-    
-    
+   
+
 def Download(url, path): # last stage: downloading
     try:
         req = requests.get(url, stream=True, allow_redirects=True)
         res = requests.head(url)
         fileSize=1
         mb = 9.5*10**-7
+        start = last_print = monotonic()
         isContentLength = True
         try:
             fileSize = int(res.headers['content-length'])
-            print(f"File Size: {fileSize}  ({round(fileSize*10**-9,2)}GB)")
+            print(f"{bcolors.OKBLUE}File Size: {fileSize}  ({round(fileSize*10**-9,2)}GB){bcolors.ENDC}")
         except:
             isContentLength = False
   
         progress=0
-        chunkSize = 10000
+        chunkSize = 4096
 
         with open(path, 'wb') as file:
             for chunk in req.iter_content(chunk_size=chunkSize):
-                file.write(chunk)
+                progress += file.write(chunk)
                 if isContentLength:
-                    progress = (progress + chunkSize)
-                    percent = (progress / fileSize) * 100
-                    print(f"\r{progress} / {fileSize}  {round(percent, 2)}% ", sep="", end="", flush=True)
+                    now = monotonic()
+                    if now - last_print > 1:
+                        percent = (progress / fileSize) * 100
+                        speedType = 'Kbps'
+                        speed = round(progress / (now - start) / 1024)
+                        if speed >= 1000:
+                            speedType = 'Mbps'
+                            speed = speed / 1000
+                        else:
+                            speedType = 'Kbps'
+                        print(f"\r{bcolors.OKGREEN}{progress}{bcolors.ENDC} / {fileSize} {bcolors.OKCYAN}{speed} {speedType}{bcolors.ENDC} {bcolors.OKGREEN}{round(percent, 2)}% {bcolors.ENDC} ", sep="", end="", flush=True)
 
     except:
-        print("Error (404)")
+        print(f"{bcolors.FAIL}Error (404){bcolors.ENDC}")
+        return False
+    return True
 
 def CreateFolder(folderLocation): # Create Folder in a given path 
     exist = os.path.exists(folderLocation)
     if not exist:
-        print("Creating Folder...")
+        print("Creating Folder...", end="")
         os.mkdir(folderLocation)
+        print("\r{bcolors.OKGREEN}Creating Folder...{bcolors.ENDC}")
         return False
     return True
 
@@ -100,15 +126,15 @@ def checkIfFileExist(path, forceDownload=False): # check if movie al ready downl
 
 def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
     print(f"Title: {episode.title}")
-    print("Getting file info...")
+    print("Getting file info...", end="")
     while(True):
         links = episode.getDownloadSources()
         length = len(links)
         if (length > 0):
             break
-        print("\rWaiting links...")
+        print(f"\r{bcolors.WARNING}Please wait...{bcolors.ENDC}       ", sep="", end="", flush=True)
         time.sleep(1)
-    print("File info collected...")
+    print(f"\r{bcolors.OKGREEN}Getting file info...{bcolors.ENDC}")
     links.reverse()
 
     numberOfLinks = len(links)
@@ -141,7 +167,7 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
     if (checkIfFileExist(filePath, forceDownload)): # download if movie not downloaded
         existFileSize = os.path.getsize(filePath)
         if (fileSize <= existFileSize):
-            print("Episode Downloaded Before ^^\n-----")
+            print(f"{bcolors.OKGREEN}Episode Downloaded Before.{bcolors.ENDC}")
             return
     print(f"Path: {filePath}")
     Download(link, filePath)
@@ -168,15 +194,16 @@ def printa(lista):
         print(a.title)
 
 def checkDirectories(seasonNumber, seriesName, posterURL, forceDownload):
-    print("Checking Directories...")
+    print("Checking Directories...", end="")
     seriesDirectory = movieDirectory + "\\" + seriesName
     seasonsDirectory = seriesDirectory + f"\\Season {seasonNumber + 1}"
     isSeriesDirectoryExist = CreateFolder(seriesDirectory)
     CreateFolder(seasonsDirectory)
-    
+    print(f"\r{bcolors.OKGREEN}Checking Directories...{bcolors.ENDC}")
     if not isSeriesDirectoryExist or (not checkIfFileExist(seriesDirectory + "\\icon.ico", forceDownload) and not checkIfFileExist(seriesDirectory + "\\desktop.ini", forceDownload)): # download poster if not downloaded
-        print("Downloading Icon...")
+        print("Downloading Icon...", end="")
         Download(posterURL, seriesDirectory+"\\icon.jpg")
+        print(f"\r{bcolors.OKGREEN}Downloading Icon...{bcolors.ENDC}")
         assign_icon(seriesDirectory)
         print("----")
 
@@ -250,7 +277,7 @@ def Search(quality):
 def getSeasons(show, quality, seriesName, forceDownload, seriesType):
     seasons = show.getSeasons()
     numberOfSeasons = len(seasons)
-    print(f"[!] There are {numberOfSeasons} season")
+    print(f"[!] There are {bcolors.OKCYAN}{numberOfSeasons}{bcolors.ENDC} season")
     try:
         sStart, sEnd, sIsRanged = getRange(input("[?] Season: "))
         if(sStart < 0):
@@ -263,7 +290,7 @@ def getSeasons(show, quality, seriesName, forceDownload, seriesType):
     else:
         episodes = seasons[sStart].getEpisodes()
         numberOfEpisodes = len(episodes)
-        print(f"[!] There are {numberOfEpisodes} Episode")
+        print(f"[!] There are {bcolors.OKCYAN}{numberOfEpisodes}{bcolors.ENDC} Episode")
         try:
             eStart, eEnd, eIsRanged = getRange(input("[?] Episodes: "))
             if (eStart < 0):
@@ -277,7 +304,7 @@ def getSeasons(show, quality, seriesName, forceDownload, seriesType):
 
         
 try:
-    quality = int(input("[?] Quality: "))
+    quality = int(input(f"[?] Quality: "))
     if quality < 280:
         quality = 280
 except:
