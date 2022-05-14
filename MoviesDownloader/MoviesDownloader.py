@@ -74,7 +74,6 @@ def Download(url, path): # last stage: downloading
         req = requests.get(url, stream=True, allow_redirects=True)
         res = requests.head(url)
         fileSize=1
-        mb = 9.5*10**-7
         start = last_print = monotonic()
         isContentLength = True
         try:
@@ -84,23 +83,30 @@ def Download(url, path): # last stage: downloading
             isContentLength = False
   
         progress=0
-        chunkSize = 4096
-
+        chunkSize = 40000
+        lastSpeed = 0
         with open(path, 'wb') as file:
             for chunk in req.iter_content(chunk_size=chunkSize):
                 progress += file.write(chunk)
                 if isContentLength:
                     now = monotonic()
-                    if now - last_print > 1:
+                    if now > last_print:
                         percent = (progress / fileSize) * 100
                         speedType = 'Kbps'
                         speed = round(progress / (now - start) / 1024)
+                        if lastSpeed > speed:
+                            chunkSize = chunkSize - 100
+                        else:
+                            chunkSize = chunkSize + 100
+                        if chunkSize < 100:
+                            chunkSize = 100
                         if speed >= 1000:
                             speedType = 'Mbps'
-                            speed = speed / 1000
+                            speed = round(speed / 1000, 1)
                         else:
                             speedType = 'Kbps'
                         print(f"\r{bcolors.OKGREEN}{progress}{bcolors.ENDC} / {fileSize} {bcolors.OKCYAN}{speed} {speedType}{bcolors.ENDC} {bcolors.OKGREEN}{round(percent, 2)}% {bcolors.ENDC} ", sep="", end="", flush=True)
+                        lastSpeed = speed
 
     except:
         print(f"{bcolors.FAIL}Error (404){bcolors.ENDC}")
@@ -112,7 +118,7 @@ def CreateFolder(folderLocation): # Create Folder in a given path
     if not exist:
         print("Creating Folder...", end="")
         os.mkdir(folderLocation)
-        print("\r{bcolors.OKGREEN}Creating Folder...{bcolors.ENDC}")
+        print(f"\r{bcolors.OKGREEN}Creating Folder...{bcolors.ENDC}")
         return False
     return True
 
@@ -126,7 +132,7 @@ def checkIfFileExist(path, forceDownload=False): # check if movie al ready downl
 
 def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
     print(f"Title: {episode.title}")
-    print("Getting file info...", end="")
+    print("Getting file info...", end="", flush=True)
     while(True):
         links = episode.getDownloadSources()
         length = len(links)
@@ -173,15 +179,20 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
     Download(link, filePath)
     print("-----")
 
+
+def getEpisodeNumber(episodeTitle):
+    return int(episodeTitle.split("ep-")[1].split('-')[0])
+
 def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesName, forceDownload, seriesType): # Download Season
     episodes[start].refreshMetadata(True)
     posterURL = episodes[start].posterURL
     checkDirectories(seasonNumber, seriesName, posterURL, forceDownload)
     #episodes.sort(key=attrgetter('title'))
-    if (seriesType=='anime'):
+    
+    if getEpisodeNumber(episodes[0].title) != 1:
         episodes.reverse()
 
-    #printa(episodes)
+    printa(episodes)
     for episodeNumber in range(start, end):
         #episodeNumber = search(episodes, i)
         episode = episodes[episodeNumber]
@@ -272,7 +283,7 @@ def Search(quality):
         #print("Episode..")
         #Thread(target=StartThreading, args=(showResult, quality, False, "", 0, forceDownload, showPoster)).start()
         StartThreading(showResult, quality, False, "", 0, forceDownload)
-    input("Press <Enter> to continue.")
+    input(f"Press {bcolors.OKCYAN}<Enter>{bcolors.ENDC} to continue.")
 
 def getSeasons(show, quality, seriesName, forceDownload, seriesType):
     seasons = show.getSeasons()
