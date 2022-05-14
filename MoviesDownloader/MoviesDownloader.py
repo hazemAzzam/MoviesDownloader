@@ -192,7 +192,7 @@ def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesNa
     if getEpisodeNumber(episodes[0].title) != 1:
         episodes.reverse()
 
-    printa(episodes)
+
     for episodeNumber in range(start, end):
         #episodeNumber = search(episodes, i)
         episode = episodes[episodeNumber]
