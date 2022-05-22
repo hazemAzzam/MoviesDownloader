@@ -71,7 +71,7 @@ IconResource=icon.ico,0"""
 
 def Download(url, path): # last stage: downloading
     try:
-        req = requests.get(url, stream=True, allow_redirects=True)
+        req = requests.get(url, stream=True, allow_redirects=False)
         res = requests.head(url)
         fileSize=1
         start = last_print = monotonic()
@@ -83,7 +83,7 @@ def Download(url, path): # last stage: downloading
             isContentLength = False
   
         progress=0
-        chunkSize = 40000
+        chunkSize = 100000
         lastSpeed = 0
         with open(path, 'wb') as file:
             for chunk in req.iter_content(chunk_size=chunkSize):
@@ -94,17 +94,13 @@ def Download(url, path): # last stage: downloading
                         percent = (progress / fileSize) * 100
                         speedType = 'Kbps'
                         speed = round(progress / (now - start) / 1024)
-                        if lastSpeed > speed:
-                            chunkSize = chunkSize - 100
-                        else:
-                            chunkSize = chunkSize + 100
-                        if chunkSize < 100:
-                            chunkSize = 100
+                        
                         if speed >= 1000:
                             speedType = 'Mbps'
                             speed = round(speed / 1000, 1)
                         else:
                             speedType = 'Kbps'
+
                         print(f"\r{bcolors.OKGREEN}{progress}{bcolors.ENDC} / {fileSize} {bcolors.OKCYAN}{speed} {speedType}{bcolors.ENDC} {bcolors.OKGREEN}{round(percent, 2)}% {bcolors.ENDC} ", sep="", end="", flush=True)
                         lastSpeed = speed
 
