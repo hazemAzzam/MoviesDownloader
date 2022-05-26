@@ -76,9 +76,10 @@ def Download(url, path): # last stage: downloading
         fileSize=1
         start = last_print = monotonic()
         isContentLength = True
+        bytesToGB=9.313225746154785*(10**-10)
         try:
             fileSize = int(res.headers['content-length'])
-            print(f"{bcolors.OKBLUE}File Size: {fileSize}  ({round(fileSize*10**-9,2)}GB){bcolors.ENDC}")
+            print(f"{bcolors.OKBLUE}File Size: {fileSize}  ({round(fileSize*bytesToGB,2)}GB){bcolors.ENDC}")
         except:
             isContentLength = False
   
@@ -112,9 +113,7 @@ def Download(url, path): # last stage: downloading
 def CreateFolder(folderLocation): # Create Folder in a given path 
     exist = os.path.exists(folderLocation)
     if not exist:
-        print("Creating Folder...", end="")
         os.mkdir(folderLocation)
-        print(f"\r{bcolors.OKGREEN}Creating Folder...{bcolors.ENDC}")
         return False
     return True
 
@@ -135,7 +134,7 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
         if (length > 0):
             break
         print(f"\r{bcolors.WARNING}Please wait...{bcolors.ENDC}       ", sep="", end="", flush=True)
-        time.sleep(1)
+        
     print(f"\r{bcolors.OKGREEN}Getting file info...{bcolors.ENDC}")
     links.reverse()
 
@@ -173,7 +172,7 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
             return
     print(f"Path: {filePath}")
     Download(link, filePath)
-    print("-----")
+    print("\n-----")
 
 
 def getEpisodeNumber(episodeTitle):
