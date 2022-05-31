@@ -165,9 +165,13 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
         
     else: # if not series
         movieFolder = movieDirectory + "\\" + episode.title
-        CreateFolder(movieFolder)
-        Download(episode.posterURL, movieFolder+"\\icon.jpg")
-        assign_icon(movieFolder)
+        try:
+            CreateFolder(movieFolder)
+            Download(episode.posterURL, movieFolder+"\\icon.jpg")
+            assign_icon(movieFolder)
+        except:
+            # folder already exists
+            pass
         
         filePath = movieDirectory + "\\" + episode.title + "\\" + fileName
 
