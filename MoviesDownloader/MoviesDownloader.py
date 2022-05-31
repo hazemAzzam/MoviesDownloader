@@ -23,7 +23,7 @@ os.system("chcp 1256")
 
 movieTextFile = 'MoviesFolderPath.txt'
 if os.path.exists(movieTextFile) == False or os.stat(movieTextFile).st_size == 0:
-    movieDirectory=input("Movies Director: ").replace('\\','\\\\')
+    movieDirectory=input("Movies Director: ").replace('\\','\\\\').replace("\"", "")
     with open(movieTextFile, 'w') as fd: 
         fd.write(movieDirectory)
 else:
@@ -72,12 +72,13 @@ IconResource=icon.ico,0"""
 def Download(url, path): # last stage: downloading
     try:
         req = requests.get(url, stream=True, allow_redirects=False)
-        res = requests.head(url)
+        
         fileSize=1
         start = last_print = monotonic()
         isContentLength = True
         bytesToGB=9.313225746154785*(10**-10)
         try:
+            res = requests.head(url)
             fileSize = int(res.headers['content-length'])
             print(f"{bcolors.OKBLUE}File Size: {fileSize}  ({round(fileSize*bytesToGB,2)}GB){bcolors.ENDC}")
         except:
