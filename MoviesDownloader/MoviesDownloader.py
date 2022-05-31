@@ -164,7 +164,12 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
 
         
     else: # if not series
-        filePath = movieDirectory + "\\" + fileName
+        movieFolder = movieDirectory + "\\" + episode.title
+        CreateFolder(movieFolder)
+        Download(episode.posterURL, movieFolder+"\\icon.jpg")
+        assign_icon(movieFolder)
+        
+        filePath = movieDirectory + "\\" + episode.title + "\\" + fileName
 
     if (checkIfFileExist(filePath, forceDownload)): # download if movie not downloaded
         existFileSize = os.path.getsize(filePath)
