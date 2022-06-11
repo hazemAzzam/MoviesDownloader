@@ -65,6 +65,7 @@ IconResource=icon.ico,0"""
     except:
         print(f"\r{bcolors.FAIL}Seting folder icon...{bcolors.ENDC}")
         pass
+
     os.system(f"del \"{filename}\"")
     os.system(f"attrib +s +h \"{iniFile}\"") #hide file
    
@@ -85,7 +86,7 @@ def Download(url, path): # last stage: downloading
             isContentLength = False
   
         progress=0
-        chunkSize = 100000
+        chunkSize = 1024
         lastSpeed = 0
         with open(path, 'wb') as file:
             for chunk in req.iter_content(chunk_size=chunkSize):
@@ -118,7 +119,7 @@ def CreateFolder(folderLocation): # Create Folder in a given path
         return False
     return True
 
-def checkIfFileExist(path, forceDownload=False): # check if movie al ready downloaded before
+def checkIfFileExist(path, forceDownload=False): # check if movie already downloaded before
     if (forceDownload): # download even the file exist
         return False
     exist = os.path.exists(path)
