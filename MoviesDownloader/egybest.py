@@ -6,10 +6,17 @@ import requests
 import math
 import re
 
-
+"""
+	somtimes episode List is order reversed, so
+	check the title of the first episode, 
+	if it includes the episode number you can reverse the order 
+	if the episode number is not 1
+"""
 class EgyBest:
 	def __init__(self, mirrorURL=None):
-		self.baseURL = mirrorURL or "https://teka.egybest.to"
+		self.baseURL = mirrorURL or "https://lake.egybest.ink"
+        #"https://open.egybest.loan"
+        #"https://upon.egybest.xyz"
 	
 	def search(self, query, includeShows=True, includeMovies=True, originalOrder=False):
 		searchURL = f"{self.baseURL}/explore/?q={query}%20"
@@ -48,7 +55,6 @@ class EgyBest:
 				elif showType == "movie" and includeMovies:
 					resultsList.append(Episode(link, title, posterURL, rating, showType))
                 
-			#resultsList.sort(key=lambda element:  element.title)
 			if not originalOrder:
 				resultsList.sort(key=lambda element: NGram(1).distance(query, element.title))
 
@@ -212,9 +218,7 @@ class Season:
 			episodes  = self.soup.body.find(attrs={"class": "movies_small"}).findAll("a")
 			for episode in episodes:
 				episodeLink = episode.get("href")
-				#print(episodeLink)
-				#titleClass = episode.find(attrs={"class": "title"})
-				#episodeTitle = titleClass and titleClass.text # episodetitle was None
+
 				episodeTitle = episodeLink.split('/')[4] 
 				
 				imgTag = episode.find("img")
@@ -226,7 +230,6 @@ class Season:
 				self.episodesList.insert(0, Episode(episodeLink, episodeTitle, episodePosterURL, episodeRating))
 					
 		finally:
-			#self.episodesList.sort(key=lambda element:  element.title)
 			return self.episodesList
 
 	def refreshMetadata(self, posterOnly=False):

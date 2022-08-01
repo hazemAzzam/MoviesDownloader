@@ -1,3 +1,7 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from pySmartDL import SmartDL
 from threading import Thread
 from PIL       import Image
@@ -23,12 +27,13 @@ os.system("chcp 1256")
 
 movieTextFile = 'MoviesFolderPath.txt'
 if os.path.exists(movieTextFile) == False or os.stat(movieTextFile).st_size == 0:
-    movieDirectory=input("Movies Director: ").replace('\\','\\\\').replace("\"", "")
+    movieDirectory=input("Movies Director: ")
     with open(movieTextFile, 'w') as fd: 
         fd.write(movieDirectory)
 else:
     with open('MoviesFolderPath.txt', 'r') as fd: 
         movieDirectory = fd.read()
+        
 
 def make_square(im, min_size=300, fill_color=(0, 0, 0, 0)):
     x, y = im.size  
@@ -66,50 +71,61 @@ IconResource=icon.ico,0"""
         print(f"\r{bcolors.FAIL}Seting folder icon...{bcolors.ENDC}")
         pass
 
-    os.system(f"del \"{filename}\"")
     os.system(f"attrib +s +h \"{iniFile}\"") #hide file
    
 
-def Download(url, path): # last stage: downloading
-    try:
-        req = requests.get(url, stream=True, allow_redirects=False)
-        
-        fileSize=1
-        start = last_print = monotonic()
-        isContentLength = True
-        bytesToGB=9.313225746154785*(10**-10)
-        try:
-            res = requests.head(url)
-            fileSize = int(res.headers['content-length'])
-            print(f"{bcolors.OKBLUE}File Size: {fileSize}  ({round(fileSize*bytesToGB,2)}GB){bcolors.ENDC}")
-        except:
-            isContentLength = False
-  
-        progress=0
-        chunkSize = 1024
-        lastSpeed = 0
-        with open(path, 'wb') as file:
-            for chunk in req.iter_content(chunk_size=chunkSize):
-                progress += file.write(chunk)
-                if isContentLength:
-                    now = monotonic()
-                    if now > last_print:
-                        percent = (progress / fileSize) * 100
-                        speedType = 'Kbps'
-                        speed = round(progress / (now - start) / 1024)
-                        
-                        if speed >= 1000:
-                            speedType = 'Mbps'
-                            speed = round(speed / 1000, 1)
-                        else:
-                            speedType = 'Kbps'
-
-                        print(f"\r{bcolors.OKGREEN}{progress}{bcolors.ENDC} / {fileSize} {bcolors.OKCYAN}{speed} {speedType}{bcolors.ENDC} {bcolors.OKGREEN}{round(percent, 2)}% {bcolors.ENDC} ", sep="", end="", flush=True)
-                        lastSpeed = speed
-
-    except:
+def Download(url, path, current_size): # last stage: downloading
+    print(path)
+    headers = {"Range": f"bytes={current_size}-"}
+    req = requests.get(url, stream=True, allow_redirects=True, headers=headers)
+    
+    if req.status_code == 404:
         print(f"{bcolors.FAIL}Error (404){bcolors.ENDC}")
+        print(f"{url}")
         return False
+        
+    fileSize=1
+
+    start = last_print = monotonic()
+    hasContentLength = True
+    bytesToGB=9.313225746154785*(10**-10)
+    
+    
+    res = requests.head(url)
+
+    if 'content-length' in res.headers:
+        fileSize = int(res.headers['content-length'])
+        print(f"{bcolors.OKBLUE}File Size: {fileSize}  ({round(fileSize*bytesToGB, 2)}GB){bcolors.ENDC}")
+    else:
+        hasContentLength = False
+    
+    progress=current_size
+    print(f'Downloading start from {progress}BYTES')
+    chunkSize = 1024
+    lastSpeed = 0
+    percent = 100
+    
+    with open(path, 'ab') as file:
+        for chunk in req.iter_content(chunk_size=chunkSize):
+            progress += file.write(chunk)
+            if hasContentLength:
+                now = monotonic()
+                if now > last_print:
+                    percent = (progress / fileSize) * 100
+                    speedType = 'Kbps'
+                    speed = round(progress / (now - start) / 1024)
+                    
+                    if speed >= 1000:
+                        speedType = 'Mbps'
+                        speed = round(speed / 1000, 1)
+                    else:
+                        speedType = 'Kbps'
+    
+                    print(f"\r{bcolors.OKGREEN}{progress}{bcolors.ENDC} / {fileSize} {bcolors.OKCYAN}{speed} {speedType}{bcolors.ENDC} {bcolors.OKGREEN}{round(percent, 2)}% {bcolors.ENDC} ", sep="", end="", flush=True)
+                    lastSpeed = speed
+    if percent < 100:
+        print("\n")
+        Download(url, path, progress) 
     return True
 
 def CreateFolder(folderLocation): # Create Folder in a given path 
@@ -153,9 +169,12 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
     fileName = fileInfo.fileName
-    try:
-        fileSize = int(requests.head(link).headers['content-length'])
-    except:
+    
+    headers = requests.head(link).headers
+
+    if 'content-length' in headers:
+        fileSize = int(headers['content-length'])
+    else:
         fileSize = 1
 
     if (isSeries): # if series make sure the directory is exists
@@ -166,23 +185,23 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
         
     else: # if not series
         movieFolder = movieDirectory + "\\" + episode.title
-        try:
-            CreateFolder(movieFolder)
+        if not CreateFolder(movieFolder): # if file was not exist then create and download the posture and assign it as icon
             Download(episode.posterURL, movieFolder+"\\icon.jpg")
             assign_icon(movieFolder)
-        except:
-            # folder already exists
-            pass
+        else:
+            print('Folder already exist\n')
+            
         
-        filePath = movieDirectory + "\\" + episode.title + "\\" + fileName
+        filePath = movieFolder + "\\" + fileName
 
+    existFileSize = 0
     if (checkIfFileExist(filePath, forceDownload)): # download if movie not downloaded
         existFileSize = os.path.getsize(filePath)
         if (fileSize <= existFileSize):
             print(f"{bcolors.OKGREEN}Episode Downloaded Before.{bcolors.ENDC}")
             return
     print(f"Path: {filePath}")
-    Download(link, filePath)
+    Download(link, filePath, existFileSize)
     print("\n-----")
 
 
@@ -193,7 +212,6 @@ def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesNa
     episodes[start].refreshMetadata(True)
     posterURL = episodes[start].posterURL
     checkDirectories(seasonNumber, seriesName, posterURL, forceDownload)
-    #episodes.sort(key=attrgetter('title'))
     
     if getEpisodeNumber(episodes[0].title) != 1:
         episodes.reverse()
