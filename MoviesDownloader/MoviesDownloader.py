@@ -75,7 +75,6 @@ IconResource=icon.ico,0"""
    
 
 def Download(url, path, current_size): # last stage: downloading
-    print(path)
     headers = {"Range": f"bytes={current_size}-"}
     req = requests.get(url, stream=True, allow_redirects=True, headers=headers)
     
@@ -86,7 +85,6 @@ def Download(url, path, current_size): # last stage: downloading
         
     fileSize=1
 
-    start = last_print = monotonic()
     hasContentLength = True
     bytesToGB=9.313225746154785*(10**-10)
     
@@ -100,11 +98,11 @@ def Download(url, path, current_size): # last stage: downloading
         hasContentLength = False
     
     progress=current_size
-    print(f'Downloading start from {progress}BYTES')
+    print(f'Downloading start from {progress} BYTES')
     chunkSize = 1024
-    lastSpeed = 0
     percent = 100
-    
+    start = last_print = monotonic()
+
     with open(path, 'ab') as file:
         for chunk in req.iter_content(chunk_size=chunkSize):
             progress += file.write(chunk)
