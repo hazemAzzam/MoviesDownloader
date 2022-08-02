@@ -182,7 +182,7 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
 
         
     else: # if not series
-        movieFolder = movieDirectory + "\\" + episode.title
+        movieFolder = movieDirectory + "\\" + seriesName
         if not CreateFolder(movieFolder): # if file was not exist then create and download the posture and assign it as icon
             Download(episode.posterURL, movieFolder+"\\icon.jpg", 0)
             assign_icon(movieFolder)
@@ -304,7 +304,7 @@ def Search(quality):
     else:
         #print("Episode..")
         #Thread(target=StartThreading, args=(showResult, quality, False, "", 0, forceDownload, showPoster)).start()
-        StartThreading(showResult, quality, False, "", 0, forceDownload)
+        StartThreading(showResult, quality, False, showTitle, 0, forceDownload)
     input(f"Press {bcolors.OKCYAN}<Enter>{bcolors.ENDC} to continue.")
 
 def getSeasons(show, quality, seriesName, forceDownload, seriesType):
