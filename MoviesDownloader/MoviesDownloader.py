@@ -98,7 +98,7 @@ def Download(url, path, current_size): # last stage: downloading
         hasContentLength = False
     
     progress=current_size
-    print(f'Downloading start from {progress} BYTES')
+
     chunkSize = 1024
     percent = 100
     start = last_print = monotonic()
