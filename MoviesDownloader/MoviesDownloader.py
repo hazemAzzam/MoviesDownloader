@@ -82,9 +82,9 @@ def Download(url, path, current_size): # last stage: downloading
         print(f"{bcolors.FAIL}Error (404){bcolors.ENDC}")
         print(f"{url}")
         return False
-        
+         
     fileSize=1
-
+     
     hasContentLength = True
     bytesToGB=9.313225746154785*(10**-10)
     
@@ -184,7 +184,7 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
     else: # if not series
         movieFolder = movieDirectory + "\\" + episode.title
         if not CreateFolder(movieFolder): # if file was not exist then create and download the posture and assign it as icon
-            Download(episode.posterURL, movieFolder+"\\icon.jpg")
+            Download(episode.posterURL, movieFolder+"\\icon.jpg", 0)
             assign_icon(movieFolder)
         else:
             print('Folder already exist\n')

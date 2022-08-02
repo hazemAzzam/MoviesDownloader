@@ -68,7 +68,7 @@ class EgyBest:
 
 		try:
 			for iteration in range(iterations):
-				topShows = __getTop(listType="tv", pageNum=(iteration + 1))
+				topShows = self.__getTop(listType="tv", pageNum=(iteration + 1))
 				for i in range(len(topShows)):
 					if (iteration + 1) == iterations and i == leftOver:
 						break
@@ -85,7 +85,7 @@ class EgyBest:
 
 		try:
 			for iteration in range(iterations):
-				topMovies = __getTop(listType="movies", pageNum=(iteration + 1))
+				topMovies = self.__getTop(listType="movies", pageNum=(iteration + 1))
 				for i in range(len(topMovies)):
 					if (iteration + 1) == iterations and i == leftOver:
 						break
