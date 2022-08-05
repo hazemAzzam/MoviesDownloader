@@ -258,6 +258,9 @@ def getRange(range):
         end = start + 1
         return start, end, False
 
+def get_max_str(lst, fallback=''):
+    return max(lst, key=len) if lst else fallback
+
 def printSearchResult(titles, types):
     maxTitleLength = len(get_max_str(titles))
     maxTypeLength = len(get_max_str(types))
