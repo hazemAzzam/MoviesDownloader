@@ -235,7 +235,7 @@ def checkDirectories(seasonNumber, seriesName, posterURL, forceDownload):
     print(f"\r{bcolors.OKGREEN}Checking Directories...{bcolors.ENDC}")
     if not isSeriesDirectoryExist or (not checkIfFileExist(seriesDirectory + "\\icon.ico", forceDownload) and not checkIfFileExist(seriesDirectory + "\\desktop.ini", forceDownload)): # download poster if not downloaded
         print("Downloading Icon...", end="")
-        Download(posterURL, seriesDirectory+"\\icon.jpg")
+        Download(posterURL, seriesDirectory+"\\icon.jpg", 0)
         print(f"\r{bcolors.OKGREEN}Downloading Icon...{bcolors.ENDC}")
         assign_icon(seriesDirectory)
         print("----")
@@ -257,9 +257,6 @@ def getRange(range):
         start = int(rangeList[0]) - 1
         end = start + 1
         return start, end, False
-
-def get_max_str(lst, fallback=''):
-    return max(lst, key=len) if lst else fallback
 
 def printSearchResult(titles, types):
     maxTitleLength = len(get_max_str(titles))
