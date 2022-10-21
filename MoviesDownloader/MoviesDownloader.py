@@ -1,15 +1,8 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from pySmartDL import SmartDL
 from threading import Thread
 from PIL       import Image
 from time import monotonic
 from egybest   import *
 import requests
-import time
-import sys
 import os
 
 class bcolors:
@@ -51,6 +44,7 @@ FolderType=Videos
 Logo=
 [.ShellClassInfo]
 IconResource=icon.ico,0"""
+
     filename = path + "\\icon.jpg"
     iconFile = path + "\\icon.ico"
     iniFile = path + "\\desktop.ini"
@@ -75,9 +69,8 @@ IconResource=icon.ico,0"""
    
 
 def Download(url, path, current_size): # last stage: downloading
-    headers = {"Range": f"bytes={current_size}-"}
-    req = requests.get(url, stream=True, allow_redirects=True, headers=headers)
-    
+    headers = {"Range": f"bytes={current_size}-", "User-Agent": "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100722 Firefox/3.6.8 GTB7.1 (.NET CLR 3.5.30729)", "Referer":"https://lake.egybest.ink/"}
+    req = requests.get(url, stream=True, allow_redirects=True, headers=headers, timeout=None)
     if req.status_code == 404:
         print(f"{bcolors.FAIL}Error (404){bcolors.ENDC}")
         print(f"{url}")
@@ -89,7 +82,7 @@ def Download(url, path, current_size): # last stage: downloading
     bytesToGB=9.313225746154785*(10**-10)
     
     
-    res = requests.head(url)
+    res = requests.head(url, timeout=None)
 
     if 'content-length' in res.headers:
         fileSize = int(res.headers['content-length'])
@@ -120,11 +113,12 @@ def Download(url, path, current_size): # last stage: downloading
                         speedType = 'Kbps'
     
                     print(f"\r{bcolors.OKGREEN}{progress}{bcolors.ENDC} / {fileSize} {bcolors.OKCYAN}{speed} {speedType}{bcolors.ENDC} {bcolors.OKGREEN}{round(percent, 2)}% {bcolors.ENDC} ", sep="", end="", flush=True)
-                    lastSpeed = speed
+                    
     if percent < 100:
         print("\n")
         Download(url, path, progress) 
     return True
+
 
 def CreateFolder(folderLocation): # Create Folder in a given path 
     exist = os.path.exists(folderLocation)
@@ -167,8 +161,13 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
     fileName = fileInfo.fileName
-    
-    headers = requests.head(link).headers
+
+    try:
+        #headers = session.get(link).request.headers
+        headers = requests.head(link, timeout=None).headers
+    except:
+        print(f"{bcolors.FAIL}[!] Unkown Error, download the episode manually.{bcolors.ENDC}\n{link}\n-----")
+        return
 
     if 'content-length' in headers:
         fileSize = int(headers['content-length'])
@@ -197,6 +196,7 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
         existFileSize = os.path.getsize(filePath)
         if (fileSize <= existFileSize):
             print(f"{bcolors.OKGREEN}Episode Downloaded Before.{bcolors.ENDC}")
+            print("\n-----")
             return
     print(f"Path: {filePath}")
     Download(link, filePath, existFileSize)
@@ -341,7 +341,7 @@ try:
     if quality < 280:
         quality = 280
 except:
-    quality = 280
+    quality = 1080
 
 while(True):
     Search(quality)
