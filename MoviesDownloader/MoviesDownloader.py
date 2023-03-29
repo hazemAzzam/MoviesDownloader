@@ -1,7 +1,7 @@
 from threading import Thread
 from PIL       import Image
 from time import monotonic
-from Egybest   import *
+from egybest   import *
 import requests
 import os
 
