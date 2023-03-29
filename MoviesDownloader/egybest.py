@@ -1,231 +1,379 @@
+from base64 import urlsafe_b64decode as decode
+from strsimpy.ngram import NGram
+from js2py import eval_js as executeJS
 from bs4 import BeautifulSoup
-from time import sleep
 import requests
+import math
 import re
 
-headers = {
-        "referer": "https://egy.egybesti.mom/",
-    }
-
+"""
+	somtimes episode List is order reversed, so
+	check the title of the first episode, 
+	if it includes the episode number you can reverse the order 
+	if the episode number is not 1
+"""
 class EgyBest:
-    def __init__(self):
-        self.baseURL = "https://egy.egybesti.mom/"
+	def __init__(self, mirrorURL=None):
+		self.baseURL = mirrorURL or "https://lake.egybest.ink"
+        #"https://open.egybest.loan"
+        #"https://upon.egybest.xyz"
+	
+	def search(self, query, includeShows=True, includeMovies=True, originalOrder=False):
+		searchURL = f"{self.baseURL}/explore/?q={query}%20"
         
-    def search(self, query):
-        searchURL = f"{self.baseURL}/find/?q={query}"
-        resultsList = []
-        
-        response = requests.get(searchURL, headers=headers)
-        soup = BeautifulSoup(response.text, "html.parser")
-        
-        movies = soup.find(attrs={"class": "load"}).find_all(attrs={"class": "block"})
-        for movie in movies:
-            movieURL = movie.get("href")
-            movieImg = movie.find("img").get("src")
-            movieTitle = movie.find("img").get("title").replace("مشاهدة ", "").replace("فيلم ", ""). replace(" مترجم", "").replace("شاهد ", "").replace("مدبلج ", "").replace(" عربي", "")
-            movieAlt = movie.find("img").get("alt")
-            if "الموسم" in movieAlt:
-                movieTitle = movieTitle.split(" الموسم ")[0]
-                show = Show(movieURL, movieTitle, movieImg, "show")
+		searchResponse = None
+		resultsList = []
+		
+		try:
+			searchResponse = requests.get(searchURL)
+			
+			pageContent = searchResponse.text
+			soup = BeautifulSoup(pageContent, features="html.parser")
 
-                if movieTitle not in resultsList:
-                    resultsList.append(show)
-            else:
-                resultsList.append(Episode(movieURL, movieTitle, movieImg, "film"))
+			resultsClass = soup.body.find(attrs={"id": "movies", "class": "movies"})
+			searchResults = resultsClass.findAll("a")
+
+			for result in searchResults:
+				if " ".join(result.get("class")) == "auto load btn b":
+					continue
+
+				link = result.get("href")
+				
+				titleClass = result.find(attrs={"class": "title"})
+				title = titleClass and titleClass.text
+
+				imgTag = result.find("img")
+				posterURL = imgTag and imgTag.get("src")
+				
+				ratingClass = result.find(attrs={"class": "i-fav rating"})
+				rating = ratingClass and ratingClass.text
+
+				showType = link.split("/")[3]
+				
+				if showType in ("series", "anime") and includeShows:
+					resultsList.append(Show(link, title, posterURL, rating, showType))
+				elif showType == "movie" and includeMovies:
+					resultsList.append(Episode(link, title, posterURL, rating, showType))
                 
-        return resultsList
-            
-        
+			if not originalOrder:
+				resultsList.sort(key=lambda element: NGram(1).distance(query, element.title))
+
+		finally:
+			return resultsList
+
+	def getTopShows(self, n=50):
+		iterations = int(math.ceil(n / 12))
+		leftOver = n % 12
+		topShowsList = []
+
+		try:
+			for iteration in range(iterations):
+				topShows = self.__getTop(listType="tv", pageNum=(iteration + 1))
+				for i in range(len(topShows)):
+					if (iteration + 1) == iterations and i == leftOver:
+						break
+
+					topShowsList.append(topShows[i])
+
+		finally:
+			return topShowsList
+
+	def getTopMovies(self, n=50):
+		iterations = int(math.ceil(n / 12))
+		leftOver = n % 12
+		topMoviesList = []
+
+		try:
+			for iteration in range(iterations):
+				topMovies = self.__getTop(listType="movies", pageNum=(iteration + 1))
+				for i in range(len(topMovies)):
+					if (iteration + 1) == iterations and i == leftOver:
+						break
+
+					topMoviesList.append(topMovies[i])
+
+		finally:
+			return topMoviesList
+
+	def getTopShowsPage(self, pageNum):
+		return self.__getTop(listType="tv", pageNum=pageNum)
+
+	def getTopMoviesPage(self, pageNum):
+		return self.__getTop(listType="movies", pageNum=pageNum)
+
+	def __getTop(self, listType, pageNum):
+		topURL = f"{self.baseURL}/{listType}/top/?page={pageNum}"
+		topList = []
+
+		try:
+			topResponse = requests.get(topURL)
+
+			pageContent = topResponse.text
+			soup = BeautifulSoup(pageContent, "html.parser")
+
+			resultsClass = soup.body.find(attrs={"id": "movies"})
+			results = resultsClass.findAll("a")
+
+			for result in results:
+				if " ".join(result.get("class")) == "auto load btn b":
+					continue
+
+				link = result.get("href")
+
+				titleClass = result.find(attrs={"class": "title"})
+				title = titleClass and titleClass.text
+
+				imgTag = result.find("img")
+				posterURL = imgTag and imgTag.get("src")
+
+				ratingClass = result.find(attrs={"class": "i-fav rating"})
+				rating = ratingClass and ratingClass.text
+
+				topList.append(Episode(link, title, posterURL, rating) if listType == "movies" else Show(link, title, posterURL, rating))
+
+		finally:
+			return topList
+
+
+
 class Show:
-    def __init__(self, link, title=None, posterURL=None, type=None):
-        self.link = link
-        self.title = title
-        self.posterURL = posterURL
-        self.type = type
-        
-        self.seasonsList = []
-        
-    def getSeasons(self):
-        response = requests.get(self.link, headers=headers)
-        soup = BeautifulSoup(response.text, "html.parser")
-        seasons = soup.find_all(attrs={"class": "main-article"})[8].find_all("a")
-        
-        for season in seasons:
-            seasonLink = season.get("href")
-            seasonTitle = season.find("img").get("alt")
-            seasonNumber = int(re.search(r'\d+', seasonTitle).group())
-            seasonImg = season.find("img").get("src")
-            
-            self.seasonsList.append(Season(link=self.link, title=seasonTitle, number=seasonNumber, posterURL=seasonImg, type=self.type))
-        
-        return self.seasonsList
-        
-    def getSeasonsAsDict(self):
-        seasonsDict = {}
-        
-        response = requests.get(self.link, headers=headers)
-        soup = BeautifulSoup(response.text, "html.parser")
-        seasons = soup.find(text="المواسم").parent.parent.find_all("a")
-        
-        for season in seasons:
-            seasonLink = season.get("href")
-            seasonTitle = season.find("img").get("alt")
-            seasonNumber = int(re.search(r'\d+', seasonTitle).group())
-            seasonImg = season.find("img").get("src")
-            
-            
-            seasonObject = Season(link=seasonLink, title=seasonTitle, seasonNumber=seasonNumber, posterURL=seasonImg, type=self.type)
-            
-            seasonsDict[seasonNumber] = seasonObject
-            
-        
-        return seasonsDict
-        
-    def __str__(self):
-        return self.title
-        
-    def __repr__(self):
-        return self.__str__()
-        
-    def __eq__(self, value):
-        return self.__str__()
-        
+	def __init__(self, link, title=None, posterURL=None, rating=None, movieType="Movie"):
+		self.link = link
+		self.title = title
+		self.posterURL = posterURL
+		self.rating = rating
+		self.type = movieType
+		self.soup = None
+
+		self.seasonsList = []
+
+	def getSeasons(self):
+		try:
+			if not self.soup:
+				showPage = requests.get(self.link).text
+				self.soup = BeautifulSoup(showPage, features="html.parser")
+
+			seasons = self.soup.body.find(attrs={"class": "contents movies_small"}).findAll("a")
+			for season in seasons:
+				seasonLink = season.get("href")
+				
+				titleClass = season.find(attrs={"class": "title"})
+				seasonTitle =  titleClass and titleClass.text
+				
+				imgTag = season.find("img")
+				seasonPosterURL = imgTag and imgTag.get("src")
+
+				self.seasonsList.insert(0, Season(seasonLink, seasonTitle, seasonPosterURL))
+
+		finally:
+			return self.seasonsList
+
+	def refreshMetadata(self, posterOnly=False):
+		title = self.title
+		posterURL = self.posterURL
+		rating = self.rating
+
+		try:
+			if not self.soup:
+				showPage = requests.get(self.link).text
+				self.soup = BeautifulSoup(showPage, features="html.parser")
+
+			if not posterOnly:
+				name = self.soup.body.find(attrs={"itemprop": "name"})
+				if name:
+					title = name.text
+
+				ratingValue = self.soup.body.find(attrs={"itemprop": "ratingValue"})
+				if ratingValue:
+					rating = ratingValue.text
+
+			imgClass = self.soup.body.find(attrs={"class": "movie_img"})
+			if imgClass:
+				imgTag = imgClass.find("img")
+				if imgTag:
+					posterURL = imgTag.get("src")
+
+		finally:
+			self.title = title
+			self.posterURL = posterURL
+			self.rating = rating
+
+
 class Season:
-    def __init__(self, link, seasonNumber, title=None, posterURL=None, type=None):
-        self.link = link
-        self.title = title
-        self.seasonNumber = seasonNumber
-        self.posterURL = posterURL
-        self.type = type
-        
-        self.episodesList = []
-        
-    def getEpisodes(self):
-        try:
-            session = requests.Session()
+	def __init__(self, link, title=None, posterURL=None, seasonType=None):
+		self.link = link
+		self.title = title
+		self.posterURL = posterURL
+		self.type = seasonType
+		self.soup = None
 
-            response = session.get(self.link, headers=headers)
-            
-            soup = BeautifulSoup(response.text, "html.parser")
-            
-            episodes = soup.find(text=self.title).parent.parent.find_all("a")
-           
-            # to get episodes from the slider in the episode page
-            response = session.get(episodes[0].get("href"), headers=headers)
-            soup = BeautifulSoup(response.text, "html.parser")
-            
-            episodes = soup.find(text="الحلقات").parent.parent.find_all("a")
-           
-            for episode in episodes:
-                episodeLink = episode.get("href")
-                episodeImg  = f"https://iegybest.film/{episode.find('img').get('src')}"
-                
-                episodeTitle= episode.find("img").get("title")
-                episodeNumber = list(map(int, re.findall(r'\d+', episodeTitle)))
-                if episodeNumber[0] == self.seasonNumber:
-                    episode = Episode(episodeLink=episodeLink, episodeNumber=episodeNumber[1], episodeTitle=episodeTitle, posterURL=episodeImg, type=self.type)
-                    self.episodesList.insert(0, episode)
-        finally:
-            return self.episodesList
-            
-    def getEpisodesAsDict(self):
-        episodesDict = {}
-        try:
-            session = requests.Session()
-            response = session.get(self.link, headers=headers)
-            
-            soup = BeautifulSoup(response.text, "html.parser")
-            
-            episodes = soup.find(text=self.title).parent.parent.find_all("a")
-           
-            # to get episodes from the slider in the episode page
-            response = session.get(episodes[0].get("href"), headers=headers)
-            soup = BeautifulSoup(response.text, "html.parser")
-            
-            episodes = soup.find(text="الحلقات").parent.parent.find_all("a")
-           
-            for episode in episodes:
-                episodeLink = episode.get("href")
-                episodeImg  = f"https://egy.egybesti.mom/{episode.find('img').get('src')}"
-                episodeTitle= episode.find("img").get("title")
-                episodeNumber = list(map(int, re.findall(r'\d+', episodeTitle)))
-                if episodeNumber[0] == self.seasonNumber:
-                    episode = Episode(episodeLink=episodeLink, episodeNumber=episodeNumber[1], episodeTitle=episodeTitle, posterURL=episodeImg, type=self.type)
-                    episodesDict[episodeNumber[1]] = episode
-        finally:
-            return episodesDict
-            
-        
-    def __str__(self):
-        return self.title
-        
-    def __repr__(self):
-        return self.__str__()
-        
-    def __eq__(self, value):
-        return self.__str__()
-        
+		self.episodesList = []
+
+	def getEpisodes(self):
+		try:
+			if not self.soup:
+				seasonPage = requests.get(self.link).text
+				self.soup = BeautifulSoup(seasonPage, features="html.parser")
+
+			episodes  = self.soup.body.find(attrs={"class": "movies_small"}).findAll("a")
+			for episode in episodes:
+				episodeLink = episode.get("href")
+
+				episodeTitle = episodeLink.split('/')[4] 
+				
+				imgTag = episode.find("img")
+				episodePosterURL = imgTag and imgTag.get("src")
+				
+				ratingClass = episode.find(attrs={"class": "i-fav rating"})
+				episodeRating = ratingClass and ratingClass.text
+
+				self.episodesList.insert(0, Episode(episodeLink, episodeTitle, episodePosterURL, episodeRating))
+					
+		finally:
+			return self.episodesList
+
+	def refreshMetadata(self, posterOnly=False):
+		title = self.title
+		posterURL = self.posterURL
+
+		try:
+			if not self.soup:
+				seasonPage = requests.get(self.link).text
+				self.soup = BeautifulSoup(seasonPage, features="html.parser")
+
+			if not posterOnly:
+				name = self.soup.body.find(attrs={"itemprop": "name"})
+				if name:
+					title = name.text
+
+			imgClass = self.soup.body.find(attrs={"class": "movie_img"})
+			if imgClass:
+				imgTag = imgClass.find("img")
+				if imgTag:
+					posterURL = imgTag.get("src")
+
+		finally:
+			self.title = title
+			self.posterURL = posterURL
+
+
 class Episode:
-    def __init__(self, episodeLink, episodeNumber, episodeTitle, posterURL, type):
-        self.link = episodeLink
-        self.title = episodeTitle
-        self.posterURL = posterURL
-        self.type = type
-        self.episodeNumber = episodeNumber
-        self.downloadLinksList = []
-        
-    def getDownloadSources(self):
+	def __init__(self, link, title=None, posterURL=None, rating=None, movieType=None):
+		self.link = link
+		self.title = title
+		self.posterURL = posterURL
+		self.rating = rating
+		self.type = movieType
+		self.soup = None
 
-        response = requests.get(self.link, headers=headers)
-        soup = BeautifulSoup(response.text, "html.parser")
-        downloadSources = soup.find_all(attrs={"class": "tr flex-start"})
-        
-        for downloadSource in downloadSources:
-            downloadWebsite = downloadSource.find("a").text
-            downloadLink = downloadSource.find("a").get("href")
-       
-            try:
-                downloadQuality = int(downloadSource.find_all("div")[2].text.replace("p", ""))
-            except:
-                continue;
-            
-            if ("تحميل" in downloadWebsite):
-                self.downloadLinksList.append(DirectDownload(downloadLink, downloadQuality, self.title))
-            else:
-               # TODO: support other download sources
-            
+		self.downloadLinksList = []
 
-        return self.downloadLinksList
-        
-    def refreshMetadata(self, posterOnly=False):
-        return
-        
-    def __str__(self):
-        return self.title
-        
-    def __repr__(self):
-        return self.__str__()
-        
-    def __eq__(self, value):
-        return self.__str__()
-       
-       
+	def getDownloadSources(self):
+		try:
+			baseURL = self.link.split("/")[0] + "//" + self.link.split("/")[2]
+			
+			session = requests.Session()
 
-class DirectDownload:
-    def __init__(self, link, quality, fileName):
-        self.link = link
-        self.quality = quality
-        self.fileName = fileName
-        self.downloadLink=""
-        self.getDownloadLink()
-        
-    def getDownloadLink(self):
-        session = requests.Session()
+			if not self.soup:
+				epispdePage = requests.get(self.link).text
+				self.soup = BeautifulSoup(epispdePage, features="html.parser")
 
-        response = session.get(self.link, headers=headers)
-        sleep(6)
-        soup = BeautifulSoup(response.text, "html.parser")
-        self.link = soup.find(attrs={"id": "goNow", "class": "flex-center align-center"}).get("href")
-        
-    def __str__(self):
-        return self.link
+			episodeSoup = self.soup
+
+			vidstreamURL = baseURL + episodeSoup.body.find("iframe", attrs={"class": "auto-size"}).get("src")
+
+			vidstreamResponseText = session.get(vidstreamURL).text
+			videoSoup = BeautifulSoup(vidstreamResponseText, features="html.parser")
+
+			try:
+				qualityLinksFileURL = baseURL + videoSoup.body.find("source").get("src")
+
+			except AttributeError:
+				jsCode = str(videoSoup.find_all("script")[1])
+
+				verificationToken = re.findall("\{'[0-9a-zA-Z_]*':'ok'\}", jsCode)[0][2:-7]
+				encodedAdLinkVar = re.findall("\([0-9a-zA-Z_]{2,12}\[Math", jsCode)[0][1:-5]
+				encodingArraysRegEx = re.findall(",[0-9a-zA-Z_]{2,12}=\[\]", jsCode)
+				firstEncodingArray = encodingArraysRegEx[1][1:-3]
+				secondEncodingArray = encodingArraysRegEx[2][1:-3]
+
+				jsCode = re.sub("^<script type=\"text/javascript\">", "", jsCode)
+				jsCode = re.sub("[;,]\$\('\*'\)(.*)$", ";", jsCode)
+				jsCode = re.sub(",ismob=(.*)\(navigator\[(.*)\]\)[,;]", ";", jsCode)
+				jsCode = re.sub("var a0b=function\(\)(.*)a0a\(\);", "", jsCode)
+				jsCode += "var link = ''; for (var i = 0; i <= " + secondEncodingArray + "['length']; i++) { link += " + firstEncodingArray + "[" + secondEncodingArray + "[i]] || ''; } return [link, " + encodedAdLinkVar + "[0]] }"
+
+				jsCodeReturn = executeJS(jsCode)()
+				verificationPath = jsCodeReturn[0]
+				encodedAdPath = jsCodeReturn[1]
+
+				adLink = baseURL + "/" + str(decode(encodedAdPath + "=" * (-len(encodedAdPath) % 4)), "utf-8")
+				session.get(adLink)
+
+				verificationLink = baseURL + "/tvc.php?verify=" + verificationPath
+				session.post(verificationLink, data={verificationToken: "ok"})
+
+				vidstreamResponseText = session.get(vidstreamURL).text
+				videoSoup = BeautifulSoup(vidstreamResponseText, features="html.parser")
+
+				qualityLinksFileURL = baseURL + videoSoup.body.find("source").get("src")
+
+			qualityLinks = session.get(qualityLinksFileURL).text
+			qualityLinksArray = qualityLinks.split("\n")[1::]
+
+			for i in range(0, len(qualityLinksArray)-2, 2):
+				qualityInfo = qualityLinksArray[i]
+				qualityRegEx = "[0-9]{3,4}x[0-9]{3,4}"
+				quality = self.__roundQuality(int(re.search(qualityRegEx, qualityInfo)[0].split("x")[1]))
+				fileName = self.link.split("/")[4] + "-" + str(quality) + "p.mp4"
+				mediaLink = requests.utils.quote(qualityLinksArray[i+1], safe=":/").replace("_", "%5F").replace("/stream/", "/dl/").replace("/stream.m3u8", f"/{fileName}")
+
+				self.downloadLinksList.append(DownloadSource(mediaLink, quality, fileName))
+
+		finally:
+			return self.downloadLinksList
+
+	def refreshMetadata(self, posterOnly=False):
+		title = self.title
+		posterURL = self.posterURL
+
+		try:
+			if not self.soup:
+				episodePage = requests.get(self.link).text
+				self.soup = BeautifulSoup(episodePage, features="html.parser")
+
+			if not posterOnly:
+				name = self.soup.body.find(attrs={"class": "movie_title"})
+				if name:
+					title = name.text
+
+			imgClass = self.soup.body.find(attrs={"class": "movie_img"})
+			if imgClass:
+				imgTag = imgClass.find("img")
+				if imgTag:
+					posterURL = imgTag.get("src")
+
+		finally:
+			self.title = title
+			self.posterURL = posterURL
+			
+
+	def __roundQuality(self, originalQuality):
+		qualities = [2160, 1080, 720, 480, 360, 240]
+		lastDifference = abs(qualities[0] - originalQuality)
+
+		roundedQuality = qualities[0]
+		for quality in qualities:
+			difference = abs(quality - originalQuality)
+			if difference < lastDifference:
+				lastDifference = difference
+				roundedQuality = quality
+
+		return roundedQuality
+
+
+class DownloadSource:
+	def __init__(self, link, quality=None, fileName=None):
+		self.link = link
+		self.quality = quality
+		self.fileName = fileName
