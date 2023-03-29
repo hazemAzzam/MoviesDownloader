@@ -31,7 +31,7 @@ class EgyBest:
                 if movieTitle not in resultsList:
                     resultsList.append(show)
             else:
-                resultsList.append(Episode(movieURL, movieTitle, movieImg, "film"))
+                resultsList.append(Episode(movieURL, 0, movieTitle, movieImg, "film"))
                 
         return resultsList
             
