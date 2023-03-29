@@ -1,7 +1,7 @@
 from threading import Thread
 from PIL       import Image
 from time import monotonic
-from egybest   import *
+from Egybest   import *
 import requests
 import os
 
@@ -67,9 +67,8 @@ IconResource=icon.ico,0"""
 
     os.system(f"attrib +s +h \"{iniFile}\"") #hide file
    
-
 def Download(url, path, current_size): # last stage: downloading
-    headers = {"Range": f"bytes={current_size}-", "User-Agent": "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100722 Firefox/3.6.8 GTB7.1 (.NET CLR 3.5.30729)", "Referer":"https://lake.egybest.ink/"}
+    headers = {"referer": "https://iiegybest.cfd/", "Range": f"bytes={current_size}-", "User-Agent": "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100722 Firefox/3.6.8 GTB7.1 (.NET CLR 3.5.30729)"}
     req = requests.get(url, stream=True, allow_redirects=True, headers=headers, timeout=None)
     if req.status_code == 404:
         print(f"{bcolors.FAIL}Error (404){bcolors.ENDC}")
@@ -104,7 +103,7 @@ def Download(url, path, current_size): # last stage: downloading
                 if now > last_print:
                     percent = (progress / fileSize) * 100
                     speedType = 'Kbps'
-                    speed = round(progress / (now - start) / 1024)
+                    speed = round((progress-current_size) / (now - start) / 1024)
                     
                     if speed >= 1000:
                         speedType = 'Mbps'
@@ -117,6 +116,7 @@ def Download(url, path, current_size): # last stage: downloading
     if percent < 100:
         print("\n")
         Download(url, path, progress) 
+
     return True
 
 
@@ -140,13 +140,14 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
     print("Getting file info...", end="", flush=True)
     while(True):
         links = episode.getDownloadSources()
+
         length = len(links)
         if (length > 0):
             break
         print(f"\r{bcolors.WARNING}Please wait...{bcolors.ENDC}       ", sep="", end="", flush=True)
         
     print(f"\r{bcolors.OKGREEN}Getting file info...{bcolors.ENDC}")
-    links.reverse()
+    #links.reverse()
 
     numberOfLinks = len(links)
     for link in links: # quality is 480 or 1080 or ...
@@ -160,8 +161,8 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
     filePath = ""
     fileInfo = getFileInfo(episode, quality)
     link = fileInfo.link
-    fileName = fileInfo.fileName
-
+    fileName = f"{fileInfo.fileName} {fileInfo.quality}p.mp4".replace(" ", "-")
+    
     try:
         #headers = session.get(link).request.headers
         headers = requests.head(link, timeout=None).headers
@@ -184,7 +185,7 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
         movieFolder = movieDirectory + "\\" + seriesName
         if not CreateFolder(movieFolder): # if file was not exist then create and download the posture and assign it as icon
             Download(episode.posterURL, movieFolder+"\\icon.jpg", 0)
-            assign_icon(movieFolder)
+            #assign_icon(movieFolder)
         else:
             print('Folder already exist\n')
             
@@ -199,12 +200,14 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
             print("\n-----")
             return
     print(f"Path: {filePath}")
+    
     Download(link, filePath, existFileSize)
     print("\n-----")
 
 
 def getEpisodeNumber(episodeTitle):
-    return int(episodeTitle.split("ep-")[1].split('-')[0])
+    #return int(episodeTitle.split("ep-")[1].split('-')[0])
+    return 1
 
 def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesName, forceDownload, seriesType): # Download Season
     episodes[start].refreshMetadata(True)
@@ -237,7 +240,7 @@ def checkDirectories(seasonNumber, seriesName, posterURL, forceDownload):
         print("Downloading Icon...", end="")
         Download(posterURL, seriesDirectory+"\\icon.jpg", 0)
         print(f"\r{bcolors.OKGREEN}Downloading Icon...{bcolors.ENDC}")
-        assign_icon(seriesDirectory)
+        #assign_icon(seriesDirectory)
         print("----")
 
 def StartSeasonsThreading(seasons, start, end, quality, seriesName, forceDownload, seriesType):
@@ -275,14 +278,17 @@ def Search(quality):
     title = input("[?] Search: ")
     egybest = EgyBest()
     searchResult = egybest.search(title)
+
     length = len(searchResult)
     if (length == 0):
         return
+    
     titles = []
     types = []
     for i in range(0, length):
         titles.append(f"{i+1}. " + searchResult[i].title)
-        types.append(searchResult[i].type + f" ({searchResult[i].rating})")
+        #types.append(searchResult[i].type + f" ({searchResult[i].rating})")
+        types.append(searchResult[i].type)
     printSearchResult(titles, types)
     
     try:
@@ -297,7 +303,7 @@ def Search(quality):
     showResult = searchResult[selectedShow]
     showPoster = searchResult[selectedShow].posterURL
     
-    if (showResult.type != "movie"):
+    if (showResult.type != "film"):
         #print("Series..")
         if (getSeasons(showResult, quality, showTitle, forceDownload, seriesType)):
             print("Type error.")
@@ -308,9 +314,9 @@ def Search(quality):
     input(f"Press {bcolors.OKCYAN}<Enter>{bcolors.ENDC} to continue.")
 
 def getSeasons(show, quality, seriesName, forceDownload, seriesType):
-    seasons = show.getSeasons()
-    numberOfSeasons = len(seasons)
-    print(f"[!] There are {bcolors.OKCYAN}{numberOfSeasons}{bcolors.ENDC} season")
+    seasons = show.getSeasonsAsDict()
+    numberOfSeasons = list(seasons.keys())
+    print(f"[!] Available Seasons {bcolors.OKCYAN}{numberOfSeasons}{bcolors.ENDC}")
     try:
         sStart, sEnd, sIsRanged = getRange(input("[?] Season: "))
         if(sStart < 0):
@@ -321,7 +327,8 @@ def getSeasons(show, quality, seriesName, forceDownload, seriesType):
         #Thread(target=StartSeasonsThreading, args=(seasons, sStart, sEnd, quality, seriesName, forceDownload, seriesType)).start()
         StartSeasonsThreading(seasons, sStart, sEnd, quality, seriesName, forceDownload, seriesType)
     else:
-        episodes = seasons[sStart].getEpisodes()
+        
+        episodes = seasons[sStart+1].getEpisodes()
         numberOfEpisodes = len(episodes)
         print(f"[!] There are {bcolors.OKCYAN}{numberOfEpisodes}{bcolors.ENDC} Episode")
         try:
