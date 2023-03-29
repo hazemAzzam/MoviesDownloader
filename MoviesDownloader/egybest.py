@@ -48,7 +48,7 @@ class Show:
     def getSeasons(self):
         response = requests.get(self.link, headers=headers)
         soup = BeautifulSoup(response.text, "html.parser")
-        seasons = soup.find_all(attrs={"class": "main-article"})[8].find_all("a")
+        seasons = soup.find(text="المواسم").parent.parent.find_all("a")
         
         for season in seasons:
             seasonLink = season.get("href")
