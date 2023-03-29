@@ -173,7 +173,7 @@ class Episode:
         self.type = type
         self.episodeNumber = episodeNumber
         self.downloadLinksList = []
-        
+        self.allDownloadSources = []
     def getDownloadSources(self):
 
         response = requests.get(self.link, headers=headers)
@@ -194,9 +194,12 @@ class Episode:
             else:
                # TODO: support other download sources
                pass
-            
+            self.allDownloadSources.append(downloadLink)
 
         return self.downloadLinksList
+        
+    def getAllDownloadSources(self):
+        return self.allDownloadSources
         
     def refreshMetadata(self, posterOnly=False):
         return

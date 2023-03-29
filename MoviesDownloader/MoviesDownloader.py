@@ -144,8 +144,10 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
         length = len(links)
         if (length > 0):
             break
-        print(f"\r{bcolors.WARNING}Please wait...{bcolors.ENDC}       ", sep="", end="", flush=True)
-        
+        print(f"\r{bcolors.WARNING}No direct download sources.{bcolors.ENDC}       ")
+        print(f"\r{bcolors.WARNING}Other sources{bcolors.ENDC}       ")
+        print(f"\r{bcolors.WARNING}{episode.getAllDownloadSources()}{bcolors.ENDC}       ")
+        return False
     print(f"\r{bcolors.OKGREEN}Getting file info...{bcolors.ENDC}")
     #links.reverse()
 
@@ -160,6 +162,8 @@ def getFileInfo(episode, quality): # get DownloadSource: Link, File Name
 def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDownload):    
     filePath = ""
     fileInfo = getFileInfo(episode, quality)
+    if fileInfo == False:
+        return
     link = fileInfo.link
     fileName = f"{fileInfo.fileName} {fileInfo.quality}p.mp4".replace(" ", "-")
     
@@ -214,8 +218,8 @@ def StartEpisodesThreading(episodes, seasonNumber, start, end, quality, seriesNa
     posterURL = episodes[start].posterURL
     checkDirectories(seasonNumber, seriesName, posterURL, forceDownload)
     
-    if getEpisodeNumber(episodes[0].title) != 1:
-        episodes.reverse()
+    #if getEpisodeNumber(episodes[0].title) != 1:
+    #    episodes.reverse()
 
 
     for episodeNumber in range(start, end):
@@ -247,6 +251,7 @@ def StartSeasonsThreading(seasons, start, end, quality, seriesName, forceDownloa
     length = len(seasons)
     for seasonNumber in range(start, end):       
         episodes = seasons[seasonNumber].getEpisodes()
+        episodes = list(seasons[seasonNumber].getEpisodesAsDict().values())
         numberOfEpisodes = len(episodes)
         StartEpisodesThreading(episodes, seasonNumber,0, numberOfEpisodes, quality, seriesName, forceDownload, seriesType)
 
@@ -329,8 +334,9 @@ def getSeasons(show, quality, seriesName, forceDownload, seriesType):
     else:
         
         episodes = seasons[sStart+1].getEpisodes()
+        availableEpisodes = list(seasons[sStart+1].getEpisodesAsDict().keys())
         numberOfEpisodes = len(episodes)
-        print(f"[!] There are {bcolors.OKCYAN}{numberOfEpisodes}{bcolors.ENDC} Episode")
+        print(f"[!] Available Episodes {bcolors.OKCYAN}{availableEpisodes}{bcolors.ENDC} Episode")
         try:
             eStart, eEnd, eIsRanged = getRange(input("[?] Episodes: "))
             if (eStart < 0):
