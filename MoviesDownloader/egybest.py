@@ -4,12 +4,12 @@ import requests
 import re
 
 headers = {
-        "referer": "https://egy.egybesti.mom/",
+        "referer": "https://legybest.homes/",
     }
 
 class EgyBest:
     def __init__(self):
-        self.baseURL = "https://egy.egybesti.mom/"
+        self.baseURL = "https://legybest.homes/"
         
     def search(self, query):
         searchURL = f"{self.baseURL}/find/?q={query}"
