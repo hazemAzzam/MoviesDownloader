@@ -4,12 +4,12 @@ import requests
 import re
 
 headers = {
-        "referer": "https://legybest.homes/",
+        "referer": "https://legybest.cyou/",
     }
 
 class EgyBest:
     def __init__(self):
-        self.baseURL = "https://legybest.homes/"
+        self.baseURL = "https://legybest.cyou/"
         
     def search(self, query):
         searchURL = f"{self.baseURL}/find/?q={query}"
@@ -101,32 +101,7 @@ class Season:
         self.episodesList = []
         
     def getEpisodes(self):
-        try:
-            session = requests.Session()
-
-            response = session.get(self.link, headers=headers)
-            
-            soup = BeautifulSoup(response.text, "html.parser")
-            
-            episodes = soup.find(text=self.title).parent.parent.find_all("a")
-           
-            # to get episodes from the slider in the episode page
-            response = session.get(episodes[0].get("href"), headers=headers)
-            soup = BeautifulSoup(response.text, "html.parser")
-            
-            episodes = soup.find(text="الحلقات").parent.parent.find_all("a")
-           
-            for episode in episodes:
-                episodeLink = episode.get("href")
-                episodeImg  = f"https://iegybest.film/{episode.find('img').get('src')}"
-                
-                episodeTitle= episode.find("img").get("title")
-                episodeNumber = list(map(int, re.findall(r'\d+', episodeTitle)))
-                if episodeNumber[0] == self.seasonNumber:
-                    episode = Episode(episodeLink=episodeLink, episodeNumber=episodeNumber[1], episodeTitle=episodeTitle, posterURL=episodeImg, type=self.type)
-                    self.episodesList.insert(0, episode)
-        finally:
-            return self.episodesList
+        return list(self.getEpisodesAsDict().values())
             
     def getEpisodesAsDict(self):
         episodesDict = {}
@@ -149,6 +124,7 @@ class Season:
                 episodeImg  = f"https://egy.egybesti.mom/{episode.find('img').get('src')}"
                 episodeTitle= episode.find("img").get("title")
                 episodeNumber = list(map(int, re.findall(r'\d+', episodeTitle)))
+                
                 if episodeNumber[0] == self.seasonNumber:
                     episode = Episode(episodeLink=episodeLink, episodeNumber=episodeNumber[1], episodeTitle=episodeTitle, posterURL=episodeImg, type=self.type)
                     episodesDict[episodeNumber[1]] = episode
