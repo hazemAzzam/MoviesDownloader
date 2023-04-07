@@ -3,19 +3,21 @@ from time import sleep
 import requests
 import re
 
+baseUrl = "https://legybest.store/"
+
 headers = {
-        "referer": "https://legybest.cyou/",
+        "referer": f"{baseUrl}/",
     }
 
 class EgyBest:
     def __init__(self):
-        self.baseURL = "https://legybest.cyou/"
+        self.baseURL = f"{baseUrl}"
         
     def search(self, query):
         searchURL = f"{self.baseURL}/find/?q={query}"
         resultsList = []
         
-        response = requests.get(searchURL, headers=headers)
+        response = requests.get(searchURL, headers=headers, allow_redirects=True)
         soup = BeautifulSoup(response.text, "html.parser")
         
         movies = soup.find(attrs={"class": "load"}).find_all(attrs={"class": "block"})
@@ -24,8 +26,9 @@ class EgyBest:
             movieImg = movie.find("img").get("src")
             movieTitle = movie.find("img").get("title").replace("مشاهدة ", "").replace("فيلم ", ""). replace(" مترجم", "").replace("شاهد ", "").replace("مدبلج ", "").replace(" عربي", "")
             movieAlt = movie.find("img").get("alt")
-            if "الموسم" in movieAlt:
+            if "الحلقة" in movieAlt or "الموسم" in movieAlt:
                 movieTitle = movieTitle.split(" الموسم ")[0]
+                movieTitle = movieTitle.split(" الحلقة ")[0]
                 show = Show(movieURL, movieTitle, movieImg, "show")
 
                 if movieTitle not in resultsList:
@@ -104,30 +107,36 @@ class Season:
         return list(self.getEpisodesAsDict().values())
             
     def getEpisodesAsDict(self):
+
         episodesDict = {}
         try:
             session = requests.Session()
+            
             response = session.get(self.link, headers=headers)
             
             soup = BeautifulSoup(response.text, "html.parser")
             
             episodes = soup.find(text=self.title).parent.parent.find_all("a")
-           
+            
             # to get episodes from the slider in the episode page
             response = session.get(episodes[0].get("href"), headers=headers)
             soup = BeautifulSoup(response.text, "html.parser")
             
             episodes = soup.find(text="الحلقات").parent.parent.find_all("a")
-           
+            episodes.reverse()
             for episode in episodes:
                 episodeLink = episode.get("href")
-                episodeImg  = f"https://egy.egybesti.mom/{episode.find('img').get('src')}"
+                episodeImg  = f"{baseUrl}/{episode.find('img').get('src')}"
                 episodeTitle= episode.find("img").get("title")
                 episodeNumber = list(map(int, re.findall(r'\d+', episodeTitle)))
-                
-                if episodeNumber[0] == self.seasonNumber:
-                    episode = Episode(episodeLink=episodeLink, episodeNumber=episodeNumber[1], episodeTitle=episodeTitle, posterURL=episodeImg, type=self.type)
-                    episodesDict[episodeNumber[1]] = episode
+                s = len(episodeNumber)
+
+                if s == 1 or episodeNumber[0] == self.seasonNumber:
+                    episode = Episode(episodeLink=episodeLink, episodeNumber=episodeNumber[s - 1], episodeTitle=episodeTitle, posterURL=episodeImg, type=self.type)
+                    episodesDict[episodeNumber[s - 1]] = episode
+        except Exception as exception:
+            print(exception)
+            
         finally:
             return episodesDict
             
