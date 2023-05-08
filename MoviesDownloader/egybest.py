@@ -3,15 +3,15 @@ from time import sleep
 import requests
 import re
 
-baseUrl = "https://legybest.store/"
+baseUrl = "https://eg.egy5best.site/"
 
 headers = {
         "referer": f"{baseUrl}/",
     }
 
 class EgyBest:
-    def __init__(self):
-        self.baseURL = f"{baseUrl}"
+    def __init__(self, mirror=""):
+        self.baseURL = baseUrl
         
     def search(self, query):
         searchURL = f"{self.baseURL}/find/?q={query}"
@@ -159,6 +159,7 @@ class Episode:
         self.episodeNumber = episodeNumber
         self.downloadLinksList = []
         self.allDownloadSources = []
+
     def getDownloadSources(self):
 
         response = requests.get(self.link, headers=headers)
@@ -172,7 +173,7 @@ class Episode:
             try:
                 downloadQuality = int(downloadSource.find_all("div")[2].text.replace("p", ""))
             except:
-                continue;
+                continue
             
             if ("تحميل" in downloadWebsite):
                 self.downloadLinksList.append(DirectDownload(downloadLink, downloadQuality, self.title))
@@ -204,7 +205,7 @@ class DirectDownload:
     def __init__(self, link, quality, fileName):
         self.link = link
         self.quality = quality
-        self.fileName = fileName
+        self.fileName = fileName.replace(":", "")
         self.downloadLink=""
         self.getDownloadLink()
         

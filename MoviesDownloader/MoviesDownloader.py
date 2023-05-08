@@ -188,7 +188,8 @@ def StartThreading(episode, quality, isSeries, seriesName, seasonNumber, forceDo
     else: # if not series
         movieFolder = movieDirectory + "\\" + seriesName
         if not CreateFolder(movieFolder): # if file was not exist then create and download the posture and assign it as icon
-            Download(episode.posterURL, movieFolder+"\\icon.jpg", 0)
+            pass
+            #Download(episode.posterURL, movieFolder+"\\icon.jpg", 0)
             #assign_icon(movieFolder)
         else:
             print('Folder already exist\n')
